@@ -14,6 +14,22 @@ app.listen(5000, () => {
     console.log('server choltese');
 });
 
+//Get all anime list
+app.get('/all_animes', (req, res) => {
+    pool.query(
+        `
+        SELECT * FROM anime
+        `,[]
+    )
+    .then(result => {
+        res.json(result.rows);
+    })
+    .catch(error => {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    })
+})
+
 // Get profile info of user: Make a GET request to this route with the user_id (between 1-1000) as a query parameter
 app.get('/user/profile', (req, res) => {
     if(user_id == null){
@@ -77,29 +93,6 @@ app.get('/user/purchase_history', (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     })
 
-})
-
-// Get studio with matching names: Make a GET request to this route with the string to be matched as a query parameter
-// Responds with a list of studios with matching name
-app.get('/studio/names', async (req, res) => {
-    const name = req.query.studio_name;
-    var studios;
-
-    try {
-        const q1 = await pool.query(
-            `
-            SELECT * FROM studio
-            WHERE UPPER("name") LIKE $1;
-            `, [`%${name.toUpperCase()}%`]
-        );
-        studios = q1.rows;
-    } catch (error) {
-        console.error('error executing query: ', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-    res.json(studios);
-    
 })
 
 //Get Studio anime list: Make a GET request to this route with the studio_id as a query parameter
