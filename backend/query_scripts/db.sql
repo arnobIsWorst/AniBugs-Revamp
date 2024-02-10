@@ -1,10 +1,10 @@
 CREATE DATABASE anime_test;
 
-CREATE SEQUENCE anime_id_seq START 3001;
+CREATE SEQUENCE anime_id_seq START 14000;
 CREATE TABLE anime(
     id INTEGER DEFAULT nextval('anime_id_seq') PRIMARY KEY,
-    romaji_title VARCHAR(100),
-    english_title VARCHAR(100),
+    romaji_title VARCHAR(200),
+    english_title VARCHAR(200),
     description VARCHAR(3000),
     status VARCHAR(15),
     season VARCHAR(20),
@@ -12,30 +12,32 @@ CREATE TABLE anime(
     duration INTEGER,
     start_date DATE,
     end_date DATE,
-    visibility INTEGER,
-    imagelink VARCHAR(1000)
+    imagelink VARCHAR(1000),
+    bannerlink VARCHAR(1000),
+    visibility INTEGER
 );
 
 CREATE SEQUENCE manga_id_seq START 172000;
 CREATE TABLE manga(
     id INTEGER DEFAULT nextval('manga_id_seq') PRIMARY KEY,
-    romaji_title VARCHAR(100),
-    english_title VARCHAR(100),
+    romaji_title VARCHAR(200),
+    english_title VARCHAR(200),
     description VARCHAR(3000),
     status VARCHAR(15),
     volumes INTEGER,
     chapters INTEGER,
     start_date DATE,
     end_date DATE,
-    imagelink VARCHAR(1000)
+    imagelink VARCHAR(1000),
+    bannerlink VARCHAR(1000)
 );
 
 CREATE SEQUENCE character_id_seq START 330000;
 CREATE TABLE "character"(
     id INTEGER DEFAULT nextval('character_id_seq') PRIMARY KEY,
     name VARCHAR(80),
-    gender VARCHAR(10),
-    description VARCHAR(9200),
+    gender VARCHAR(30),
+    description VARCHAR(10000),
     imagelink VARCHAR(1000)
 );
 
@@ -56,14 +58,67 @@ CREATE TABLE "user"(
     avatarlink VARCHAR(500)
 );
 
+CREATE TABLE forum_post(
+    id SERIAL PRIMARY KEY,
+    anime_id INTEGER REFERENCES anime(id),
+    character_id INTEGER REFERENCES "character"(id),
+    title VARCHAR(1000),
+    body VARCHAR(100000),
+    date_posted DATE,
+    topic VARCHAR(20)
+);
 
-----------------------------------------------------------------------------------------------------------------
+CREATE TABLE forum_comment(
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER REFERENCES forum_post(id),
+    user_id INTEGER REFERENCES "user"(id),
+    body VARCHAR(2000),
+    date_commented DATE
+);
 
+CREATE TABLE anime_review(
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    anime_id INTEGER REFERENCES anime(id),
+    rating INTEGER,
+    body VARCHAR(5000),
+    date_posted DATE
+);
+
+CREATE TABLE character_review(
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    character_id INTEGER REFERENCES "character"(id),
+    rating INTEGER,
+    body VARCHAR(5000),
+    date_posted DATE
+);
+
+CREATE TABLE episode(
+    id SERIAL PRIMARY KEY,
+    anime_id INTEGER REFERENCES anime(id),
+    episode_number INTEGER,
+    link VARCHAR(1000)
+);
+
+CREATE TABLE episode_comment(
+    id SERIAL PRIMARY KEY,
+    episode_id INTEGER REFERENCES episode(id),
+    body VARCHAR(2000),
+    date_commented DATE
+);
+
+CREATE TABLE follow(
+    user_id INTEGER REFERENCES "user"(id),
+    studio_id INTEGER REFERENCES studio(id),
+    date_followed DATE,
+    PRIMARY KEY (user_id, studio_id)
+);
 
 CREATE TABLE anime_manga(
     anime_id INTEGER REFERENCES anime(id),
     manga_id INTEGER REFERENCES manga(id),
-    PRIMARY KEY (animeID, mangaID)
+    PRIMARY KEY (anime_id, manga_id)
 );
 
 CREATE TABLE anime_character(
@@ -97,3 +152,10 @@ CREATE TABLE bookmarks(
     anime_id INTEGER REFERENCES anime(id),
     PRIMARY KEY (user_id, anime_id)
 );
+
+DROP TABLE anime_genre;
+DROP TABLE anime_manga;
+DROP TABLE anime_studio;
+DROP TABLE anime_character;
+DROP TABLE purchase;
+DROP TABLE bookmarks;
