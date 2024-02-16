@@ -62,10 +62,18 @@ CREATE TABLE forum_post(
     id SERIAL PRIMARY KEY,
     anime_id INTEGER REFERENCES anime(id),
     character_id INTEGER REFERENCES "character"(id),
+    user_id INTEGER REFERENCES "user"(id),
     title VARCHAR(1000),
     body VARCHAR(100000),
-    date_posted DATE,
+    date_posted DATE DEFAULT CURRENT_DATE,
     topic VARCHAR(20)
+);
+
+CREATE TABLE forum_post_vote(
+    post_id INTEGER REFERENCES forum_post(id),
+    user_id INTEGER REFERENCES "user"(id),
+    upvote BOOLEAN,
+    PRIMARY KEY (post_id, user_id)
 );
 
 CREATE TABLE forum_comment(
@@ -159,3 +167,14 @@ DROP TABLE anime_studio;
 DROP TABLE anime_character;
 DROP TABLE purchase;
 DROP TABLE bookmarks;
+
+
+
+SELECT FP.id, FP.anime_id, FP.title, A.romaji_title, FP.user_id, U.first_name, FP.date_posted
+FROM forum_post FP
+JOIN anime A ON A.id = FP.anime_id
+JOIN "user" U ON U.id = FP.user_id;
+UNION 
+SELECT FP.id, FP.anime_id, FP.character_id, FP.title, C.name
+FROM forum_post FP
+JOIN "character" C ON C.id = FP.character_id;
