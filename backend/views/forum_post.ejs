@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum Post</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .comment {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .vote-count {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <%- include('./partials/navbar.ejs') %>
+
+    <div class="container">
+        <div class="content">
+            <h4>
+                <% if(post.topic == "anime"){ %>
+                    Topic: <%= post.romaji_title %> / <%= post.english_title %>
+                <% } else if(post.topic == "character"){ %>
+                    Topic: <%= post.name %>
+                <% } else{ %>
+                    <%=  %>
+                <% } %>
+            </h4>
+            <h1><%= post.title %></h1>
+            <h6>Author: <%= post.user_name %></h6>
+            <p><%= post.body %></p>
+            <h6>Date posted: <%= post.date_posted %></h6>
+
+            <!-- Vote count -->
+            <div class="vote-count">
+                <p>Upvotes: <%= votes.upvotes %></p>
+                <p>Downvotes: <%= votes.downvotes %></p>
+            </div>
+
+            <!-- Upvote and downvote buttons -->
+            <div class="text-center mt-4">
+                <button class="btn btn-success mr-2" onclick="sendVoteRequest(true)">Upvote</button>
+                <button class="btn btn-danger" onclick="sendVoteRequest(false)">Downvote</button>
+            </div>
+
+            <!-- Comment section -->
+            <div class="mt-5">
+                <h4>Comments</h4>
+                <% comments.forEach(comment => { %>
+                    <div class="comment">
+                        <h6><%= comment.name %></h6>
+                        <p><strong><%= comment.body %></strong></p>
+                    </div>
+                <% }) %>
+            </div>
+
+            <!-- Add Comment form -->
+            <div class="mt-4">
+                <h4>Add Comment</h4>
+                <form id="commentForm">
+                    <div class="form-group">
+                        <label for="commentBody">Your Comment</label>
+                        <textarea class="form-control" id="commentBody" rows="3" placeholder="Enter your comment"></textarea>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="submitComment()">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script>
+        function sendVoteRequest(isUpvote) {
+        // Construct request body
+        console.log("in here");
+        var requestBody = {
+            post_id: parseInt("<%= post.id %>"),
+            user_id: parseInt("<%= post.user_id %>"),
+            upvote: isUpvote
+        };
+        console.log(requestBody);
+
+        // Send POST request to server
+        fetch("http://localhost:5000/forum/vote", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(requestBody)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to send vote request");
+            }
+            console.log("Vote request sent successfully");
+            location.reload();
+        })
+        .catch(error => {
+            console.error("Error sending vote request:", error);
+        });
+    }
+    function submitComment() {
+        var commentBody = document.getElementById("commentBody").value;
+
+        // Construct request body
+        var requestBody = {
+            post_id: parseInt("<%= post.id %>"),
+            body: commentBody
+        };
+
+        // Send POST request to server
+        fetch("http://localhost:5000/forum/comment", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(requestBody)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to submit comment");
+            }
+            console.log("Comment submitted successfully");
+            location.reload();
+        })
+        .catch(error => {
+            console.error("Error submitting comment:", error);
+        });
+    }
+
+    </script>
+
+</body>
+
+</html>

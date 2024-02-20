@@ -1,0 +1,27 @@
+<div>
+    <hr class="border border-danger border-7 opacity-50">
+    <div class="text-success text-center">
+        <h1><strong>Anibugs</strong></h1>
+    </div>
+    <hr class="border border-primary border-7 opacity-75">
+</div>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/anime">Anime</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/studio">Studio</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/forum">Forum</a>
+            </li>
+        </ul>
+    </div>
+    <a class="navbar-brand ml-auto" href="/user_info"><%= username %></a>
+    <form class="form-inline" action="/logout" method="get">
+        <button class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
+    </form>
+</nav>
+
