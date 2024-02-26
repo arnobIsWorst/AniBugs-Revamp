@@ -54,8 +54,9 @@ CREATE TABLE "user"(
     last_name VARCHAR(50),
     email VARCHAR(100),
     gender VARCHAR(15),
-    joined DATE,
-    avatarlink VARCHAR(500)
+    joined DATE DEFAULT CURRENT_DATE,
+    avatarlink VARCHAR(500),
+    password VARCHAR(100)
 );
 
 CREATE TABLE forum_post(
@@ -178,4 +179,12 @@ UNION
 SELECT FP.id, FP.anime_id, FP.character_id, FP.title, C.name
 FROM forum_post FP
 JOIN "character" C ON C.id = FP.character_id;
+
+
+ALTER TABLE "user" ADD "password" VARCHAR(100);
+UPDATE "user" SET "password" = '1234';
+
+ALTER TABLE "user"
+ALTER COLUMN joined SET DEFAULT CURRENT_DATE;
+
 

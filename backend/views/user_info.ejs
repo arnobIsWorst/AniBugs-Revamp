@@ -53,13 +53,73 @@
     <!-- User Profile Image -->
     <img src="<%= user.avatarlink %>" alt="Profile Image" class="profile-image">
     <!-- User Profile Information -->
-    <div>
-        <h4>User Name: </h4>
-        <h6><%= user.first_name + ' ' + user.last_name %></h6>
+    <div class="content">
+        <h6>User Name: </h6>
+        <h4><%= user.first_name + ' ' + user.last_name %></h4>
         <p>Email: <%= user.email %></p>
         <p>Gender: <%= user.gender %></p>
         <p>Joined: <%= user.joined %></p>
         <!-- Add more profile information as needed -->
+    </div>
+    <div class="content">
+        <p>Current balance: <%= user.balance %></p>
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+            Recharge
+        </button>
+        
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Recharge balance by any amount</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="numberInput">Enter amount:</label>
+                            <textarea class="form-control" id="numberInput" rows="1"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="submitBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('submitBtn').addEventListener('click', function() {
+                // Get the value from the text area
+                var balance = document.getElementById('numberInput').value;
+
+                // Send a POST request to the backend route
+                fetch('/user/balance/recharge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ balance: balance })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to recharge balance');
+                    }
+                    console.log('Balance recharged successfully');
+                    // Optionally, you can close the modal here
+                    $('#exampleModal').modal('hide');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error recharging balance:', error);
+                });
+            });
+        </script>
+
     </div>
 </div>
 </div>

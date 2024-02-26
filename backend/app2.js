@@ -18,8 +18,64 @@ app.listen(5000, () => {
 
 //User login
 app.get('/', (req, res) => {
-    res.render('user_login');
+    //res.render('user_login');
+    res.render('login');
     console.log('1 ' + user_id);
+})
+
+// Authorize user login
+app.get('/auth/user', async(req, res)=>{
+    try {
+        
+        const {email, password} = req.query;
+        console.log(email, password);
+        const is_valid = await pool.query(
+            `
+            SELECT is_valid_user($1, $2);
+            `, [email, password]
+        );
+        console.log(is_valid.rows[0].is_valid_user);
+        if(is_valid.rows[0].is_valid_user){
+            const q = await pool.query(
+                `
+                SELECT id FROM "user" WHERE email = $1 AND password = $2
+                `, [email, password]
+            );
+            user_id = q.rows[0].id;
+            res.redirect('/all_anime');
+        } else{
+            res.redirect('/');
+        }
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Authorize studio login
+app.get('/auth/studio', async(req, res)=>{
+    try {
+
+        const studio_id = req.query.studio_id;
+        console.log(studio_id);
+        const q = await pool.query(
+            `
+            SELECT * FROM studio WHERE id = $1;
+            `, [studio_id]
+        );
+        console.log(q.rows);
+
+        if(q.rows[0]){
+            res.redirect('/studio/individual/' + studio_id);
+        } else{
+            res.redirect('/');
+        }
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 })
 
 //Get all anime list
@@ -147,6 +203,31 @@ app.get('/user_info', async (req, res) => {
     
     res.render('user_info', {user: user, list: purchaseList, total: total, bookmarks: bookmarks, posts: forum_posts, username: username});
 
+})
+
+// Recharge balance of a user
+app.post('/user/balance/recharge', async(req, res)=>{
+    try {
+        
+        const balance = parseInt(req.body.balance);
+        const q1 = await pool.query(
+            `
+            SELECT balance FROM "user" WHERE id = $1
+            `, [user_id]
+        );
+        const old_balance = q1.rows[0].balance;
+        const q2 = await pool.query(
+            `
+            UPDATE "user" SET balance = $1 WHERE id = $2
+            `, [balance + old_balance, user_id]
+        );
+
+        res.redirect('/user_info');
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 })
 
 app.get('/studio', (req, res) => {
@@ -363,6 +444,9 @@ app.get('/purchase_anime/:id', (req, res) => {
         `
         INSERT INTO purchase (user_id, anime_id, watched) VALUES ($1, $2, $3)
         `,[user_id, anime_id, 'f']
+        //`
+        //CALL handle_purchase($1, $2)
+        //`, [user_id, anime_id]
     )
     .then(result => {
         res.redirect('/user_info');
@@ -613,11 +697,11 @@ app.post('/add', (req, res) => {
     const last_name = req.body.last_name;
     const email = req.body.email;
     const gender = req.body.gender;
-    const joined = req.body.joined;
+    const password = req.body.password;
 
     pool.query(
-        `INSERT INTO "user" (first_name, last_name, email, gender, joined)
-        VALUES ($1, $2, $3, $4, $5)`,[first_name, last_name, email, gender, joined]
+        `INSERT INTO "user" (first_name, last_name, email, gender, password)
+        VALUES ($1, $2, $3, $4, $5)`,[first_name, last_name, email, gender, password]
     )
     .then(result => {
         console.log(result.rows);

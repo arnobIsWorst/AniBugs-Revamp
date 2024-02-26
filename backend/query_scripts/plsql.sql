@@ -96,6 +96,10 @@ FOR EACH ROW
 EXECUTE FUNCTION purchase_handle();
 
 
+DROP TRIGGER IF EXISTS purchase_handle ON purchase;
+
+
+
 
 -- Trigger to handle forum post deletion
 
@@ -177,3 +181,178 @@ END;
 $$ LANGUAGE plpgsql;
 
 SELECT total_cost(2);
+
+
+
+-- Function to validate user login
+CREATE OR REPLACE FUNCTION IS_VALID_USER(EMAIL IN VARCHAR(100), U_PASSWORD IN VARCHAR(100))
+RETURN BOOLEAN IS
+    V_PASS VARCHAR(100);
+BEGIN
+    SELECT "password" INTO V_PASS 
+    FROM "user" WHERE email = EMAIL;
+    
+    IF V_PASS = U_PASSWORD THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
+END;
+
+
+
+CREATE OR REPLACE FUNCTION is_valid_user(email_param VARCHAR(100), u_password_param VARCHAR(100))
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_pass VARCHAR(100);
+BEGIN
+    SELECT "password" INTO v_pass 
+    FROM "user" WHERE LOWER(email) = LOWER(email_param);
+    
+    IF v_pass = u_password_param THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+-- Procedure to handle purchase
+CREATE OR REPLACE PROCEDURE HANDLE_PURCHASE(USER_ID IN NUMBER, ANIME_ID IN NUMBER) IS
+U_BALANCE NUMBER;
+ANIME_PRICE NUMBER;
+BEGIN
+
+    SELECT balance INTO U_BALANCE
+    FROM "user"
+    WHERE id = USER_ID;
+
+    SELECT SUM(price) INTO ANIME_PRICE
+    FROM anime_studio 
+    WHERE anime_id = ANIME_ID;
+
+    IF U_BALANCE >= ANIME_PRICE THEN
+        UPDATE "user" SET balance = U_BALANCE - ANIME_PRICE
+        WHERE id = USER_ID;
+
+        INSERT INTO purchase (user_id, anime_id, watched) VALUES (USER_ID, ANIME_ID, false);
+
+        DELETE FROM bookmarks 
+        WHERE user_id = USER_ID AND anime_id = ANIME_ID;
+    END IF;
+
+END;
+
+
+CREATE OR REPLACE PROCEDURE handle_purchase(user_id_param INTEGER, anime_id_param INTEGER) AS $$
+DECLARE
+    u_balance NUMERIC;
+    anime_price NUMERIC;
+BEGIN
+    SELECT balance INTO u_balance
+    FROM "user"
+    WHERE id = user_id_param;
+
+    SELECT SUM(price) INTO anime_price
+    FROM anime_studio 
+    WHERE anime_id = anime_id_param;
+
+    IF u_balance >= anime_price THEN
+        UPDATE "user" SET balance = u_balance - anime_price
+        WHERE id = user_id_param;
+
+        INSERT INTO purchase (user_id, anime_id, watched) VALUES (user_id_param, anime_id_param, false);
+
+        DELETE FROM bookmarks 
+        WHERE user_id = user_id_param AND anime_id = anime_id_param;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP PROCEDURE IF EXISTS handle_purchase;
+
+
+
+
+-- Trigger to handle purchase
+
+CREATE OR REPLACE TRIGGER HANDLE_PURCHASE
+BEFORE INSERT
+ON purchase
+FOR EACH ROW
+DECLARE
+U_BALANCE NUMBER;
+ANIME_PRICE NUMBER;
+INSUFFICIENT_BALANCE EXCEPTION;
+BEGIN
+
+    SELECT balance INTO U_BALANCE
+    FROM "user"
+    WHERE id = :NEW.user_id;
+
+    SELECT SUM(price) INTO ANIME_PRICE
+    FROM anime_studio 
+    WHERE anime_id = :NEW.anime_id;
+
+    IF U_BALANCE >= ANIME_PRICE THEN
+        UPDATE "user" SET balance = U_BALANCE - ANIME_PRICE
+        WHERE id = :NEW.user_id;
+
+        DELETE FROM bookmarks 
+        WHERE user_id = USER_ID AND anime_id = ANIME_ID;
+    ELSE
+        RAISE INSUFFICIENT_BALANCE;
+    END IF;
+
+EXCEPTION
+    WHEN INSUFFICIENT_BALANCE THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Insufficient balance.');
+
+END;
+
+
+
+CREATE OR REPLACE FUNCTION handle_purchase_trigger() RETURNS TRIGGER AS $$
+DECLARE
+    u_balance NUMERIC;
+    anime_price NUMERIC;
+BEGIN
+    SELECT balance INTO u_balance
+    FROM "user"
+    WHERE id = NEW.user_id;
+
+    SELECT SUM(price) INTO anime_price
+    FROM anime_studio 
+    WHERE anime_id = NEW.anime_id;
+
+    IF u_balance >= anime_price THEN
+        UPDATE "user" SET balance = u_balance - anime_price
+        WHERE id = NEW.user_id;
+
+        DELETE FROM bookmarks 
+        WHERE user_id = NEW.user_id AND anime_id = NEW.anime_id;
+    ELSE
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER handle_purchase_trigger
+BEFORE INSERT ON purchase
+FOR EACH ROW
+EXECUTE FUNCTION handle_purchase_trigger();
+
+
+
