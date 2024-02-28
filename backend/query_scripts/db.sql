@@ -91,7 +91,7 @@ CREATE TABLE anime_review(
     anime_id INTEGER REFERENCES anime(id),
     rating INTEGER,
     body VARCHAR(5000),
-    date_posted DATE 
+    date_posted DATE DEFAULT CURRENT_DATE
 );
 
 CREATE TABLE character_review(
@@ -100,12 +100,17 @@ CREATE TABLE character_review(
     character_id INTEGER REFERENCES "character"(id),
     rating INTEGER,
     body VARCHAR(5000),
-    date_posted DATE
+    date_posted DATE DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE season(
+    id SERIAL PRIMARY KEY,
+    season_number INTEGER
 );
 
 CREATE TABLE episode(
     id SERIAL PRIMARY KEY,
-    anime_id INTEGER REFERENCES anime(id),
+    season_id INTEGER REFERENCES season(id),
     episode_number INTEGER,
     link VARCHAR(1000)
 );
@@ -114,13 +119,13 @@ CREATE TABLE episode_comment(
     id SERIAL PRIMARY KEY,
     episode_id INTEGER REFERENCES episode(id),
     body VARCHAR(2000),
-    date_commented DATE
+    date_commented DATE DEFAULT CURRENT_DATE
 );
 
 CREATE TABLE follow(
     user_id INTEGER REFERENCES "user"(id),
     studio_id INTEGER REFERENCES studio(id),
-    date_followed DATE,
+    date_followed DATE DEFAULT CURRENT_DATE,
     PRIMARY KEY (user_id, studio_id)
 );
 
@@ -140,6 +145,7 @@ CREATE TABLE anime_studio(
     anime_id INTEGER REFERENCES anime(id),
     studio_id INTEGER REFERENCES studio(id),
     price INTEGER,
+    season_id INTEGER REFERENCES season(id),
     PRIMARY KEY (anime_id, studio_id)
 );
 
@@ -153,6 +159,7 @@ CREATE TABLE purchase(
     user_id INTEGER REFERENCES "user"(id),
     anime_id INTEGER REFERENCES anime(id),
     watched BOOLEAN,
+    timestamp_purchased TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, anime_id)
 );
 
@@ -186,5 +193,17 @@ UPDATE "user" SET "password" = '1234';
 
 ALTER TABLE "user"
 ALTER COLUMN joined SET DEFAULT CURRENT_DATE;
+
+ALTER TABLE anime_studio ADD season_id INTEGER REFERENCES season(id);
+
+ALTER TABLE purchase ADD timestamp_purchased TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+UPDATE purchase
+SET timestamp_purchased = 
+    CURRENT_TIMESTAMP - 
+    (random() * (interval '365 days'))::interval;
+
+
+ALTER TABLE anime_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
+ALTER TABLE character_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
 
 

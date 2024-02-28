@@ -210,7 +210,7 @@ app.post('/user/balance/recharge', async(req, res)=>{
     try {
         
         const balance = parseInt(req.body.balance);
-        const q1 = await pool.query(
+        /*const q1 = await pool.query(
             `
             SELECT balance FROM "user" WHERE id = $1
             `, [user_id]
@@ -220,6 +220,12 @@ app.post('/user/balance/recharge', async(req, res)=>{
             `
             UPDATE "user" SET balance = $1 WHERE id = $2
             `, [balance + old_balance, user_id]
+        );*/
+
+        const q1 = await pool.query(
+            `
+            CALL recharge_balance($1, $2)
+            `, [user_id, balance]
         );
 
         res.redirect('/user_info');
@@ -342,33 +348,20 @@ app.get('/individual_anime/:id', async (req, res) => {
         `, [id]
     );
 
-    var isPurchased = false;
     const status = await pool.query(
         `
-        SELECT * FROM purchase
-        WHERE user_id = $1 AND anime_id = $2;
+        SELECT is_purchased($1, $2)
         `,[user_id, id]
     );
-    if(status.rows != 0){
-        isPurchased = true;
-    }
+    const isPurchased = status.rows[0].is_purchased;
     console.log('isPurchased: ' + isPurchased);
 
-    var isBookmarked = false;
-    try {
-        const q = await pool.query(
-            `
-            SELECT * FROM bookmarks
-            WHERE user_id = $1 AND anime_id = $2;
-            `, [user_id, id]
-        );
-        if(q.rows.length != 0){
-            isBookmarked = true;
-        }
-    } catch (error) {
-        console.error('error executing query: ', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const q = await pool.query(
+        `
+        SELECT is_bookmarked($1, $2)
+        `, [user_id, id]
+    );
+    const isBookmarked = q.rows[0].is_bookmarked;
 
     const studios = await pool.query(
         `
@@ -406,6 +399,15 @@ app.get('/individual_anime/:id', async (req, res) => {
         `, [id]
     );
 
+    const seasons = await pool.query(
+        `
+        SELECT S.id, S.season_number, ST."name", SA.price
+        FROM anime_studio SA JOIN studio ST ON ST.id = SA.studio_id
+        JOIN season S ON S.id = SA.season_id
+        WHERE SA.anime_id = $1
+        `, [id]
+    );
+
     res.render('anime_info', {
         anime: anime.rows[0],
         studiolist: studios.rows,
@@ -414,7 +416,8 @@ app.get('/individual_anime/:id', async (req, res) => {
         username: username,
         characterlist: characters.rows,
         reviewlist: reviews.rows,
-        forum_posts: forum_posts.rows
+        forum_posts: forum_posts.rows,
+        seasons: seasons.rows
     });
 })
 

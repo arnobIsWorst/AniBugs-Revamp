@@ -356,3 +356,224 @@ EXECUTE FUNCTION handle_purchase_trigger();
 
 
 
+-- Procedure to recharge balance of a user
+CREATE OR REPLACE PROCEDURE RECHARGE_BALANCE(USER_ID IN NUMBER, RECHARGE_AMOUNT IN NUMBER) IS
+OLD_BALANCE NUMBER;
+NEW_BALANCE NUMBER;
+BEGIN
+
+SELECT balance INTO OLD_BALANCE
+FROM "user" WHERE id = USER_ID;
+
+NEW_BALANCE := OLD_BALANCE + RECHARGE_AMOUNT;
+
+UPDATE "user" SET balance = NEW_BALANCE;
+
+END;
+
+
+
+CREATE OR REPLACE PROCEDURE recharge_balance(user_id_param INTEGER, recharge_amount_param NUMERIC) AS $$
+DECLARE
+    old_balance NUMERIC;
+    new_balance NUMERIC;
+BEGIN
+    SELECT balance INTO old_balance
+    FROM "user" WHERE id = user_id_param;
+
+    new_balance := old_balance + recharge_amount_param;
+
+    UPDATE "user" SET balance = new_balance WHERE id = user_id_param;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Function to check if an anime is purchased or not
+CREATE OR REPLACE FUNCTION IS_PURCHASED(P_USER_ID IN NUMBER, P_ANIME_ID IN NUMBER)
+RETURN BOOLEAN IS
+V_STATUS NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO V_STATUS
+FROM purchase
+WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+
+IF V_STATUS = 0 THEN
+    RETURN FALSE;
+ELSE
+    RETURN TRUE;
+END IF;
+
+END;
+
+
+CREATE OR REPLACE FUNCTION is_purchased(p_user_id_param INTEGER, p_anime_id_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_status INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_status
+    FROM purchase
+    WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+
+    IF v_status = 0 THEN
+        RETURN FALSE;
+    ELSE
+        RETURN TRUE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Function to check if an anime is bookmarked or not
+CREATE OR REPLACE FUNCTION IS_BOOKMARKED(P_USER_ID IN NUMBER, P_ANIME_ID IN NUMBER)
+RETURN BOOLEAN IS
+V_STATUS NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO V_STATUS
+FROM bookmarks
+WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+
+IF V_STATUS = 0 THEN
+    RETURN FALSE;
+ELSE
+    RETURN TRUE;
+END IF;
+
+END;
+
+
+
+CREATE OR REPLACE FUNCTION is_bookmarked(p_user_id_param INTEGER, p_anime_id_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_status INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_status
+    FROM bookmarks
+    WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+
+    IF v_status = 0 THEN
+        RETURN FALSE;
+    ELSE
+        RETURN TRUE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Populate season table
+DECLARE
+TOTAL_SEASONS NUMBER;
+SEASONID_COUNT NUMBER;
+V_COUNT NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO TOTAL_SEASONS FROM anime_studio;
+FOR I IN 1..TOTAL_SEASONS
+LOOP
+    INSERT INTO season (season_number) VALUES (1);
+END LOOP;
+
+SEASONID_COUNT := 1;
+FOR R IN (SELECT id FROM anime)
+LOOP
+    V_COUNT := 1;
+    FOR P IN (SELECT * FROM anime_studio WHERE anime_id = R.id)
+    LOOP
+        UPDATE anime_studio SET season_id = SEASONID_COUNT
+        WHERE anime_id = P.anime_id AND studio_id = P.studio_id;
+        SEASONID_COUNT := SEASONID_COUNT + 1;
+
+        UPDATE season SET season_number = V_COUNT WHERE id = SEASONID_COUNT;
+        V_COUNT := V_COUNT + 1;
+    END LOOP;
+END LOOP;
+
+END;
+
+
+
+DO $$
+DECLARE
+    total_seasons INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO total_seasons FROM anime_studio;
+    
+    FOR i IN 1..total_seasons LOOP
+        INSERT INTO season (season_number) VALUES (1);
+    END LOOP;
+END $$;
+
+
+DO $$
+DECLARE
+    total_seasons INTEGER;
+    seasonid_count INTEGER := 1;
+    v_count INTEGER;
+    r_record RECORD;
+    p_record RECORD;
+BEGIN
+    SELECT COUNT(*) INTO total_seasons FROM anime_studio;
+
+    FOR r_record IN (SELECT DISTINCT id FROM anime) LOOP
+        v_count := 1;
+        FOR p_record IN (SELECT * FROM anime_studio WHERE anime_id = r_record.id) LOOP
+            UPDATE anime_studio SET season_id = seasonid_count
+            WHERE anime_id = p_record.anime_id AND studio_id = p_record.studio_id;
+
+            UPDATE season SET season_number = v_count WHERE id = seasonid_count;
+            
+            v_count := v_count + 1;
+            seasonid_count := seasonid_count + 1;
+        END LOOP;
+    END LOOP;
+END $$;
+
+
+-- Procedure to populate episode table
+DECLARE 
+
+BEGIN
+
+
+
+END;
+
+
+
+

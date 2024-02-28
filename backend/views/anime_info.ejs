@@ -138,6 +138,25 @@
         </div>
     </div>
 
+    <!-- Seasons -->
+    <div class="container">
+        <div class="row">
+            <% seasons.forEach(season => { %>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title">Season <%= season.season_number %></h2>
+                        <p class="card-text"><strong>Studio:</strong> <%= season.name %></p>
+                        <p class="card-text"><strong>Price:</strong> <%= season.price %></p>
+                        <button class="btn btn-primary btn-details">Watch</button>
+                    </div>
+                </div>
+            </div>
+            <% }) %>
+        </div>
+    </div>
+
+
     <div class="container text-center">
         <h3><strong>Characters</strong></h3>
         <div class="row">
