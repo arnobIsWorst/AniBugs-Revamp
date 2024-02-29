@@ -62,46 +62,6 @@ EXECUTE FUNCTION vote_trigger();
 
 
 
-
--- Trigger to delete from bookmark when a purchase is made
-
-CREATE OR REPLACE TRIGGER PURCHASE_HANDLE
-BEFORE INSERT 
-ON purchase 
-FOR EACH ROW 
-DECLARE 
-
-BEGIN
-
-    DELETE FROM bookmarks 
-    WHERE user_id = :NEW.user_id AND anime_id = :NEW.anime_id;
-
-END;
-
-
-
-CREATE OR REPLACE FUNCTION purchase_handle()
-RETURNS TRIGGER AS $$
-BEGIN
-    DELETE FROM bookmarks 
-    WHERE user_id = NEW.user_id AND anime_id = NEW.anime_id;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER purchase_handle
-BEFORE INSERT ON purchase
-FOR EACH ROW
-EXECUTE FUNCTION purchase_handle();
-
-
-DROP TRIGGER IF EXISTS purchase_handle ON purchase;
-DROP FUNCTION IF EXISTS purchase_handle;
-
-
-
-
 -- Trigger to handle forum post deletion
 
 CREATE OR REPLACE TRIGGER DELETE_FORUM_POST_HANDLE
@@ -160,7 +120,6 @@ BEGIN
 
 END;
 
-SELECT TOTAL_COST(2);
 
 
 CREATE OR REPLACE FUNCTION total_cost(user_id_param INTEGER)
@@ -180,8 +139,6 @@ BEGIN
     RETURN total_price;
 END;
 $$ LANGUAGE plpgsql;
-
-SELECT total_cost(2);
 
 
 
@@ -224,64 +181,6 @@ EXCEPTION
         RETURN FALSE;  -- Handle case where email is not found in the database
 END;
 $$ LANGUAGE plpgsql;
-
-
-
-
--- Procedure to handle purchase
-CREATE OR REPLACE PROCEDURE HANDLE_PURCHASE(USER_ID IN NUMBER, ANIME_ID IN NUMBER) IS
-U_BALANCE NUMBER;
-ANIME_PRICE NUMBER;
-BEGIN
-
-    SELECT balance INTO U_BALANCE
-    FROM "user"
-    WHERE id = USER_ID;
-
-    SELECT SUM(price) INTO ANIME_PRICE
-    FROM anime_studio 
-    WHERE anime_id = ANIME_ID;
-
-    IF U_BALANCE >= ANIME_PRICE THEN
-        UPDATE "user" SET balance = U_BALANCE - ANIME_PRICE
-        WHERE id = USER_ID;
-
-        INSERT INTO purchase (user_id, anime_id, watched) VALUES (USER_ID, ANIME_ID, false);
-
-        DELETE FROM bookmarks 
-        WHERE user_id = USER_ID AND anime_id = ANIME_ID;
-    END IF;
-
-END;
-
-
-CREATE OR REPLACE PROCEDURE handle_purchase(user_id_param INTEGER, anime_id_param INTEGER) AS $$
-DECLARE
-    u_balance NUMERIC;
-    anime_price NUMERIC;
-BEGIN
-    SELECT balance INTO u_balance
-    FROM "user"
-    WHERE id = user_id_param;
-
-    SELECT SUM(price) INTO anime_price
-    FROM anime_studio 
-    WHERE anime_id = anime_id_param;
-
-    IF u_balance >= anime_price THEN
-        UPDATE "user" SET balance = u_balance - anime_price
-        WHERE id = user_id_param;
-
-        INSERT INTO purchase (user_id, anime_id, watched) VALUES (user_id_param, anime_id_param, false);
-
-        DELETE FROM bookmarks 
-        WHERE user_id = user_id_param AND anime_id = anime_id_param;
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP PROCEDURE IF EXISTS handle_purchase;
-
 
 
 
@@ -390,6 +289,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
 -- Function to check if an anime is purchased or not
 CREATE OR REPLACE FUNCTION IS_PURCHASED(P_USER_ID IN NUMBER, P_ANIME_ID IN NUMBER)
 RETURN BOOLEAN IS
@@ -425,6 +325,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- Function to check if an anime is bookmarked or not
@@ -463,6 +364,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- Function to calculate total revenue of a studio
@@ -582,117 +484,3 @@ CREATE OR REPLACE TRIGGER refund_anime_trigger
 BEFORE DELETE ON purchase
 FOR EACH ROW
 EXECUTE FUNCTION refund_anime_trigger();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Populate season table
-DECLARE
-TOTAL_SEASONS NUMBER;
-SEASONID_COUNT NUMBER;
-V_COUNT NUMBER;
-BEGIN
-
-SELECT COUNT(*) INTO TOTAL_SEASONS FROM anime_studio;
-FOR I IN 1..TOTAL_SEASONS
-LOOP
-    INSERT INTO season (season_number) VALUES (1);
-END LOOP;
-
-SEASONID_COUNT := 1;
-FOR R IN (SELECT id FROM anime)
-LOOP
-    V_COUNT := 1;
-    FOR P IN (SELECT * FROM anime_studio WHERE anime_id = R.id)
-    LOOP
-        UPDATE anime_studio SET season_id = SEASONID_COUNT
-        WHERE anime_id = P.anime_id AND studio_id = P.studio_id;
-        SEASONID_COUNT := SEASONID_COUNT + 1;
-
-        UPDATE season SET season_number = V_COUNT WHERE id = SEASONID_COUNT;
-        V_COUNT := V_COUNT + 1;
-    END LOOP;
-END LOOP;
-
-END;
-
-
-
-DO $$
-DECLARE
-    total_seasons INTEGER;
-BEGIN
-    SELECT COUNT(*) INTO total_seasons FROM anime_studio;
-    
-    FOR i IN 1..total_seasons LOOP
-        INSERT INTO season (season_number) VALUES (1);
-    END LOOP;
-END $$;
-
-
-DO $$
-DECLARE
-    total_seasons INTEGER;
-    seasonid_count INTEGER := 1;
-    v_count INTEGER;
-    r_record RECORD;
-    p_record RECORD;
-BEGIN
-    SELECT COUNT(*) INTO total_seasons FROM anime_studio;
-
-    FOR r_record IN (SELECT DISTINCT id FROM anime) LOOP
-        v_count := 1;
-        FOR p_record IN (SELECT * FROM anime_studio WHERE anime_id = r_record.id) LOOP
-            UPDATE anime_studio SET season_id = seasonid_count
-            WHERE anime_id = p_record.anime_id AND studio_id = p_record.studio_id;
-
-            UPDATE season SET season_number = v_count WHERE id = seasonid_count;
-            
-            v_count := v_count + 1;
-            seasonid_count := seasonid_count + 1;
-        END LOOP;
-    END LOOP;
-END $$;
-
-
--- Procedure to populate episode table
-DECLARE 
-
-BEGIN
-
-
-
-END;
-
-
-
-

@@ -132,6 +132,7 @@
                 <th scope="col">Romaji Title</th>
                 <th scope="col">English Title</th>
                 <th scope="col">Price ($)</th>
+                <th scope="col">Refund</th>
                 <!-- Add more columns as needed -->
             </tr>
         </thead>
@@ -142,6 +143,11 @@
                     <td><%= list[i-1].romaji_title %></td>
                     <td><%= list[i-1].english_title %></td>
                     <td><%= list[i-1].sum %></td>
+                    <td>
+                        <form action="/anime/refund/<%= list[i-1].anime_id %>" method="GET">
+                            <button type="submit" class="btn btn-danger">Refund</button>
+                        </form>
+                    </td>
                     <!-- Add more cells with dynamic data as needed -->
                 </tr>
             <% } %>

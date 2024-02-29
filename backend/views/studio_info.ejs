@@ -48,6 +48,15 @@
 
 <%- include('./partials/navbar.ejs') %>
 
+<!-- Studio profile info section -->
+<div class="container mt-5">
+    <div class="content">
+        <h2>Name: <%= username %></h2>
+        <h5>Total income: <%= total_income %></h5>
+    </div>
+</div>
+
+
 <div class="container mt-5">
     <h2>Anime List</h2>
     <table class="table table-bordered">
@@ -100,6 +109,30 @@
                     <td><%= sales[i-1].sum %></td>
                     <td><%= sales[i-1].count %></td>
                     <!-- Add more cells with dynamic data as needed -->
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<div class="container mt-5">
+    <h2>Follower List</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Username</th>
+                <th scope="col">Email</th>
+                <th scope="col">Date followed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% for(let i = 1; i <= followers.length; i++) { %>
+                <tr>
+                    <th scope="row"><%= i %></th>
+                    <td><%= followers[i-1].username %></td>
+                    <td><%= followers[i-1].email %></td>
+                    <td><%= followers[i-1].date_followed %></td>
                 </tr>
             <% } %>
         </tbody>

@@ -187,6 +187,18 @@ SELECT FP.id, FP.anime_id, FP.character_id, FP.title, C.name
 FROM forum_post FP
 JOIN "character" C ON C.id = FP.character_id;
 
+-- A way to sort by popularity without using visibility
+SELECT A.id, A.romaji_title, A.english_title, A.imagelink, COALESCE(T.count, 0) AS user_count
+FROM anime_studio SA JOIN anime A ON A.id = SA.anime_id
+LEFT JOIN 
+(
+	SELECT anime_id, COUNT(user_id)
+	FROM purchase P
+	GROUP BY P.anime_id
+) T ON T.anime_id = SA.anime_id
+WHERE SA.studio_id = 11
+ORDER BY COALESCE(T.count, 0) DESC;
+
 
 ALTER TABLE "user" ADD "password" VARCHAR(100);
 UPDATE "user" SET "password" = '1234';

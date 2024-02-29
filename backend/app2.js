@@ -5,8 +5,11 @@ const pool = require('./query_scripts/db_connection');
 const app = express();
 app.set('view engine', 'ejs');
 
-var user_id = null;
-var username = null;
+let user_id = null;
+let username = null;
+let studio_id = null;
+let studioname = null;
+
 
 app.use(cors());
 app.use(express.json());
@@ -57,7 +60,7 @@ app.get('/auth/user', async(req, res)=>{
 app.get('/auth/studio', async(req, res)=>{
     try {
 
-        const studio_id = req.query.studio_id;
+        studio_id = req.query.studio_id;
         console.log(studio_id);
         const q = await pool.query(
             `
@@ -261,10 +264,52 @@ app.get('/studio/names', async (req, res) => {
     
 })
 
-//Display Studio sales history
+// Display studio info from user side
+app.get('/user/studio/individual/:id', async(req, res)=>{
+    const id = req.params.id;
+
+    try {
+        
+        const animelist = await pool.query(
+            `
+            SELECT A.id, A.romaji_title, A.english_title, A.imagelink, COALESCE(T.count, 0) AS user_count
+            FROM anime_studio SA JOIN anime A ON A.id = SA.anime_id
+            LEFT JOIN 
+            (
+                SELECT anime_id, COUNT(user_id)
+                FROM purchase P
+                GROUP BY P.anime_id
+            ) T ON T.anime_id = SA.anime_id
+            WHERE SA.studio_id = $1
+            ORDER BY COALESCE(T.count, 0) DESC
+            `, [id]
+        );
+
+        res.render('studio_animes', {animelist: animelist.rows, username: username});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+//Display Studio sales history from studio side
 app.get('/studio/individual/:id', async (req, res) => {
     const studio_id = req.params.id;
-    console.log(studio_id)
+    
+    const q = await pool.query(
+        `
+        SELECT name FROM studio WHERE id = $1
+        `, [studio_id]
+    )
+
+    studioname = q.rows[0].name;
+
+    const total_income = await pool.query(
+        `
+        SELECT total_revenue_studio($1)
+        `, [studio_id]
+    );
 
     try {
         const q1 = await pool.query(
@@ -294,13 +339,25 @@ app.get('/studio/individual/:id', async (req, res) => {
             `,[studio_id]
         );
 
-        res.render('studio_info', {list: q1.rows, sales: q2.rows, username: username})
+        const q3 = await pool.query(
+            `
+            SELECT U.id, U.first_name || ' ' || U.last_name AS username, U.email, F.date_followed
+            FROM follow F 
+            JOIN "user" U ON U.id = F.user_id
+            WHERE F.studio_id = $1
+            ORDER BY F.date_followed DESC
+            `, [studio_id]
+        );
+
+        res.render('studio_info', {total_income: total_income.rows[0].total_revenue_studio, 
+                                    list: q1.rows, 
+                                    sales: q2.rows, 
+                                    followers: q3.rows,
+                                    username: studioname})
 
     } catch (error) {
         console.log(error);
     }
-
-
 })
 
 //Get an anime name
@@ -459,6 +516,25 @@ app.get('/purchase_anime/:id', (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     })
 });
+
+// Refund a particular anime
+app.get('/anime/refund/:id', async(req, res)=>{
+    try {
+        
+        const anime_id = req.params.id;
+
+        await pool.query(
+            `
+            DELETE FROM purchase WHERE user_id = $1 AND anime_id = $2
+            `, [user_id, anime_id]
+        );
+        res.redirect('/user_info');
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
 
 // Get a particular character
 app.get('/character/:id', async(req, res)=>{
@@ -742,5 +818,7 @@ app.get('/test', (req, res)=>{
 app.get('/logout', (req,res) => {
     user_id = null;
     username = null;
+    studio_id = null;
+    studioname = null;
     res.redirect('/');
 })
