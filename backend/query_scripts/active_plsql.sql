@@ -484,3 +484,124 @@ CREATE OR REPLACE TRIGGER refund_anime_trigger
 BEFORE DELETE ON purchase
 FOR EACH ROW
 EXECUTE FUNCTION refund_anime_trigger();
+
+
+-- Trigger to validate user signup
+CREATE OR REPLACE TRIGGER VALIDATE_USER_SIGNUP
+BEFORE INSERT
+ON "user"
+FOR EACH ROW
+DECLARE
+V_EMAIL_COUNT NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO V_EMAIL_COUNT
+FROM "user"
+WHERE email = :NEW.email;
+
+IF V_EMAIL_COUNT > 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Duplicate email.');
+END IF;
+
+END;
+
+
+
+CREATE OR REPLACE FUNCTION validate_user_signup_trigger() RETURNS TRIGGER AS $$
+DECLARE
+    v_email_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_email_count
+    FROM "user"
+    WHERE email = NEW.email;
+
+    IF v_email_count > 0 THEN
+        RAISE EXCEPTION 'Duplicate email';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER validate_user_signup_trigger
+BEFORE INSERT ON "user"
+FOR EACH ROW
+EXECUTE FUNCTION validate_user_signup_trigger();
+
+
+-- Procedure to handle anime rating
+CREATE OR REPLACE PROCEDURE HANDLE_ANIME_RATING(P_ANIME_ID IN NUMBER, P_USER_ID IN NUMBER, P_RATING IN NUMBER) IS
+IS_PRESENT NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO IS_PRESENT
+FROM anime_review
+WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+
+IF IS_PRESENT > 0 THEN
+    UPDATE anime_review SET rating = P_RATING
+    WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+ELSE
+    INSERT INTO anime_review (user_id, anime_id, rating)
+    VALUES (P_USER_ID, P_ANIME_ID, P_RATING);
+END IF;
+
+END;
+
+
+CREATE OR REPLACE PROCEDURE handle_anime_rating(p_anime_id_param INTEGER, p_user_id_param INTEGER, p_rating_param INTEGER) AS $$
+DECLARE
+    is_present INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO is_present
+    FROM anime_review
+    WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+
+    IF is_present > 0 THEN
+        UPDATE anime_review SET rating = p_rating_param
+        WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+    ELSE
+        INSERT INTO anime_review (user_id, anime_id, rating)
+        VALUES (p_user_id_param, p_anime_id_param, p_rating_param);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Procedure to handle anime review
+CREATE OR REPLACE PROCEDURE HANDLE_ANIME_REVIEW(P_ANIME_ID IN NUMBER, P_USER_ID IN NUMBER, P_REVIEW_BODY IN VARCHAR(5000)) IS
+IS_PRESENT NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO IS_PRESENT
+FROM anime_review
+WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+
+IF IS_PRESENT > 0 THEN
+    UPDATE anime_review SET body = P_REVIEW_BODY
+    WHERE user_id = P_USER_ID AND anime_id = P_ANIME_ID;
+ELSE
+    INSERT INTO anime_review (user_id, anime_id, body)
+    VALUES (P_USER_ID, P_ANIME_ID, P_REVIEW_BODY);
+END IF;
+
+END;
+
+
+CREATE OR REPLACE PROCEDURE handle_anime_review(p_anime_id_param INTEGER, p_user_id_param INTEGER, p_review_body_param VARCHAR(5000)) AS $$
+DECLARE
+    is_present INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO is_present
+    FROM anime_review
+    WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+
+    IF is_present > 0 THEN
+        UPDATE anime_review SET body = p_review_body_param
+        WHERE user_id = p_user_id_param AND anime_id = p_anime_id_param;
+    ELSE
+        INSERT INTO anime_review (user_id, anime_id, body)
+        VALUES (p_user_id_param, p_anime_id_param, p_review_body_param);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

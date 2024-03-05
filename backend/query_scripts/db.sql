@@ -201,6 +201,16 @@ LEFT JOIN
 WHERE SA.studio_id = 11
 ORDER BY COALESCE(T.count, 0) DESC;
 
+-- Basically, just join the sub-query, then you have the popularity parameter to order by
+SELECT A.*, COALESCE(T.COUNT, 0) AS popularity
+FROM anime A
+LEFT JOIN (
+SELECT anime_id, COUNT(user_id)
+FROM purchase P
+GROUP BY P.anime_id
+) T ON T.anime_id = A.id
+ORDER BY popularity DESC;
+
 
 ALTER TABLE "user" ADD "password" VARCHAR(100);
 UPDATE "user" SET "password" = '1234';
