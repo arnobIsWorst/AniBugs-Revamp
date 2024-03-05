@@ -478,6 +478,26 @@ app.get('/individual_anime/:id', async (req, res) => {
     });
 })
 
+// Get all episodes in a particular season of an anime
+app.get('/anime/episodes/:season_id', async(req, res)=>{
+    try {
+        
+        const season_id = req.params.season_id;
+        const q = await pool.query(
+            `
+            SELECT * FROM episode
+            WHERE season_id = $1
+            `, [season_id]
+        );
+
+        res.json({episodes: q.rows});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 // Bookmark a particular anime
 app.get('/bookmark_anime/:id', (req, res) => {
     const anime_id = req.params.id;
@@ -529,6 +549,42 @@ app.get('/anime/refund/:id', async(req, res)=>{
             `, [user_id, anime_id]
         );
         res.redirect('/user_info');
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Rate an anime
+app.post('/anime/rate', async(req, res)=>{
+    try {
+        
+        const {user_id, anime_id, rating} = req.body;
+        await pool.query(
+            `
+            CALL handle_anime_rating($1, $2, $3)
+            `, [user_id, anime_id, rating]
+        );
+        res.json({message: "Rating added"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Review an anime
+app.post('/anime/review', async(req, res)=>{
+    try {
+        
+        const {user_id, anime_id, body} = req.body;
+        await pool.query(
+            `
+            CALL handle_anime_review($1, $2, $3)
+            `, [user_id, anime_id, body]
+        );
+        res.json({message: "Review added"});
 
     } catch (error) {
         console.error('error executing query: ', error);
