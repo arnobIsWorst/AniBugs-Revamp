@@ -44,7 +44,9 @@ CREATE TABLE "character"(
 CREATE SEQUENCE studio_id_seq START 7500;
 CREATE TABLE studio(
     id INTEGER DEFAULT nextval('studio_id_seq') PRIMARY KEY,
-    name VARCHAR(50)
+    name VARCHAR(50),
+    refund_time_limit INTERVAL DEFAULT '3 day',
+    refund_rate DOUBLE PRECISION DEFAULT 0.5
 );
 
 CREATE SEQUENCE user_id_seq START 1001;
@@ -89,7 +91,7 @@ CREATE TABLE anime_review(
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
     anime_id INTEGER REFERENCES anime(id),
-    rating INTEGER,
+    rating DOUBLE PRECISION,
     body VARCHAR(5000),
     date_posted DATE DEFAULT CURRENT_DATE
 );
@@ -98,7 +100,7 @@ CREATE TABLE character_review(
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
     character_id INTEGER REFERENCES "character"(id),
-    rating INTEGER,
+    rating DOUBLE PRECISION,
     body VARCHAR(5000),
     date_posted DATE DEFAULT CURRENT_DATE
 );
@@ -217,5 +219,10 @@ SET timestamp_purchased =
 
 ALTER TABLE anime_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
 ALTER TABLE character_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
+
+ALTER TABLE studio ADD refund_time_limit INTERVAL DEFAULT '3 day';
+ALTER TABLE studio ADD refund_rate DOUBLE PRECISION DEFAULT 0.5;
+
+ALTER TABLE "user" ADD balance DOUBLE PRECISION DEFAULT 0;
 
 
