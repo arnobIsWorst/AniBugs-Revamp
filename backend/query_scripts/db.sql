@@ -44,9 +44,7 @@ CREATE TABLE "character"(
 CREATE SEQUENCE studio_id_seq START 7500;
 CREATE TABLE studio(
     id INTEGER DEFAULT nextval('studio_id_seq') PRIMARY KEY,
-    name VARCHAR(50),
-    refund_time_limit INTERVAL DEFAULT '3 day',
-    refund_rate DOUBLE PRECISION DEFAULT 0.5
+    name VARCHAR(50)
 );
 
 CREATE SEQUENCE user_id_seq START 1001;

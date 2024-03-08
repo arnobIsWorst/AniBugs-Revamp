@@ -615,7 +615,15 @@ DECLARE
     character_id_array INTEGER[];
     v_season_id INTEGER;
     v_season_count INTEGER;
+    OLD_BALANCES INTEGER[];
+    BUYERS INTEGER[];
+    ANIME_PRICE INTEGER;
 BEGIN
+    SELECT ARRAY(SELECT user_id FROM purchase WHERE anime_id = p_anime_id) INTO BUYERS;
+    SELECT ARRAY(SELECT U.balance FROM purchase P JOIN "user" U ON P.user_id = U.id WHERE P.anime_id = p_anime_id) INTO OLD_BALANCES;
+
+    SELECT price INTO ANIME_PRICE FROM anime_studio WHERE anime_id = p_anime_id AND studio_id = p_studio_id;
+    
     SELECT COUNT(*) INTO v_season_count
     FROM anime_studio
     WHERE anime_id = p_anime_id;
@@ -629,12 +637,16 @@ BEGIN
             WHERE anime_id = p_anime_id
         ) INTO character_id_array;
 
+        RAISE NOTICE 'character id array length: %', ARRAY_LENGTH(character_id_array, 1);
+
         DELETE FROM anime 
         WHERE id = p_anime_id;
 
-        FOR i IN 1..ARRAY_LENGTH(character_id_array, 1) LOOP
-            DELETE FROM "character" WHERE id = character_id_array[i];
-        END LOOP;
+        IF ARRAY_LENGTH(character_id_array, 1) > 0 THEN
+            FOR i IN 1..ARRAY_LENGTH(character_id_array, 1) LOOP
+                DELETE FROM "character" WHERE id = character_id_array[i];
+            END LOOP;
+        END IF;
 
         DELETE FROM season WHERE id = v_season_id;
     ELSE
@@ -650,6 +662,12 @@ BEGIN
         );
 
         DELETE FROM season WHERE id = v_season_id;
+    END IF;
+
+    IF ARRAY_LENGTH(BUYERS, 1) > 0 THEN 
+        FOR j IN 1..ARRAY_LENGTH(BUYERS, 1) LOOP
+            UPDATE "user" SET balance = OLD_BALANCES[j] + ANIME_PRICE WHERE id = BUYERS[j];
+        END LOOP;
     END IF;
 
 END;
