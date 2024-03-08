@@ -605,3 +605,52 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- Procedure to delete an anime
+
+CREATE OR REPLACE PROCEDURE delete_anime(p_anime_id INTEGER, p_studio_id INTEGER)
+AS $$
+DECLARE
+    character_id_array INTEGER[];
+    v_season_id INTEGER;
+    v_season_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_season_count
+    FROM anime_studio
+    WHERE anime_id = p_anime_id;
+
+    SELECT season_id INTO v_season_id FROM anime_studio
+    WHERE anime_id = p_anime_id AND studio_id = p_studio_id;
+
+    IF v_season_count = 1 THEN
+        SELECT ARRAY(
+            SELECT character_id FROM anime_character
+            WHERE anime_id = p_anime_id
+        ) INTO character_id_array;
+
+        DELETE FROM anime 
+        WHERE id = p_anime_id;
+
+        FOR i IN 1..ARRAY_LENGTH(character_id_array, 1) LOOP
+            DELETE FROM "character" WHERE id = character_id_array[i];
+        END LOOP;
+
+        DELETE FROM season WHERE id = v_season_id;
+    ELSE
+        DELETE FROM "character" WHERE id IN (
+            SELECT CA1.character_id 
+            FROM anime_character CA1 
+            JOIN (
+            SELECT character_id, COUNT(*)
+            FROM anime_character
+            GROUP BY character_id
+            ) CA2 ON CA1.character_id = CA2.character_id
+            WHERE CA2.count = 1 AND CA1.anime_id = p_anime_id
+        );
+
+        DELETE FROM season WHERE id = v_season_id;
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql;

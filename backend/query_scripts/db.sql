@@ -58,13 +58,14 @@ CREATE TABLE "user"(
     gender VARCHAR(15),
     joined DATE DEFAULT CURRENT_DATE,
     avatarlink VARCHAR(500),
-    password VARCHAR(100)
+    password VARCHAR(100),
+    balance DOUBLE PRECISION DEFAULT 0
 );
 
 CREATE TABLE forum_post(
     id SERIAL PRIMARY KEY,
-    anime_id INTEGER REFERENCES anime(id),
-    character_id INTEGER REFERENCES "character"(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
+    character_id INTEGER REFERENCES "character"(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES "user"(id),
     title VARCHAR(1000),
     body VARCHAR(100000),
@@ -73,7 +74,7 @@ CREATE TABLE forum_post(
 );
 
 CREATE TABLE forum_post_vote(
-    post_id INTEGER REFERENCES forum_post(id),
+    post_id INTEGER REFERENCES forum_post(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES "user"(id),
     upvote BOOLEAN,
     PRIMARY KEY (post_id, user_id)
@@ -81,7 +82,7 @@ CREATE TABLE forum_post_vote(
 
 CREATE TABLE forum_comment(
     id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES forum_post(id),
+    post_id INTEGER REFERENCES forum_post(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES "user"(id),
     body VARCHAR(2000),
     date_commented DATE DEFAULT CURRENT_DATE
@@ -90,7 +91,7 @@ CREATE TABLE forum_comment(
 CREATE TABLE anime_review(
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
     rating DOUBLE PRECISION,
     body VARCHAR(5000),
     date_posted DATE DEFAULT CURRENT_DATE
@@ -99,7 +100,7 @@ CREATE TABLE anime_review(
 CREATE TABLE character_review(
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
-    character_id INTEGER REFERENCES "character"(id),
+    character_id INTEGER REFERENCES "character"(id) ON DELETE CASCADE,
     rating DOUBLE PRECISION,
     body VARCHAR(5000),
     date_posted DATE DEFAULT CURRENT_DATE
@@ -112,14 +113,14 @@ CREATE TABLE season(
 
 CREATE TABLE episode(
     id SERIAL PRIMARY KEY,
-    season_id INTEGER REFERENCES season(id),
+    season_id INTEGER REFERENCES season(id) ON DELETE CASCADE,
     episode_number INTEGER,
     link VARCHAR(1000)
 );
 
 CREATE TABLE episode_comment(
     id SERIAL PRIMARY KEY,
-    episode_id INTEGER REFERENCES episode(id),
+    episode_id INTEGER REFERENCES episode(id) ON DELETE CASCADE,
     body VARCHAR(2000),
     date_commented DATE DEFAULT CURRENT_DATE
 );
@@ -132,34 +133,34 @@ CREATE TABLE follow(
 );
 
 CREATE TABLE anime_manga(
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id), ON DELETE CASCADE,
     manga_id INTEGER REFERENCES manga(id),
     PRIMARY KEY (anime_id, manga_id)
 );
 
 CREATE TABLE anime_character(
-    anime_id INTEGER REFERENCES anime(id),
-    character_id INTEGER REFERENCES "character"(id),
+    anime_id INTEGER REFERENCES anime(id), ON DELETE CASCADE,
+    character_id INTEGER REFERENCES "character"(id) ON DELETE CASCADE,
     PRIMARY KEY (anime_id, character_id)
 );
 
 CREATE TABLE anime_studio(
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
     studio_id INTEGER REFERENCES studio(id),
     price INTEGER,
-    season_id INTEGER REFERENCES season(id),
+    season_id INTEGER REFERENCES season(id) ON DELETE CASCADE,
     PRIMARY KEY (anime_id, studio_id)
 );
 
 CREATE TABLE anime_genre(
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
     genre VARCHAR(20),
     PRIMARY KEY (anime_id, genre)
 );
 
 CREATE TABLE purchase(
     user_id INTEGER REFERENCES "user"(id),
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
     watched BOOLEAN,
     timestamp_purchased TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, anime_id)
@@ -167,7 +168,7 @@ CREATE TABLE purchase(
 
 CREATE TABLE bookmarks(
     user_id INTEGER REFERENCES "user"(id),
-    anime_id INTEGER REFERENCES anime(id),
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, anime_id)
 );
 
@@ -235,4 +236,64 @@ ALTER TABLE studio ADD refund_rate DOUBLE PRECISION DEFAULT 0.5;
 
 ALTER TABLE "user" ADD balance DOUBLE PRECISION DEFAULT 0;
 
+
+ALTER TABLE forum_post_vote
+DROP CONSTRAINT IF EXISTS forum_post_vote_post_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT forum_post_vote_post_id_fkey FOREIGN KEY (post_id) REFERENCES forum_post(id) ON DELETE CASCADE;
+
+ALTER TABLE forum_comment
+DROP CONSTRAINT IF EXISTS forum_comment_post_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT forum_comment_post_id_fkey FOREIGN KEY (post_id) REFERENCES forum_post(id) ON DELETE CASCADE;
+
+ALTER TABLE forum_post
+DROP CONSTRAINT IF EXISTS forum_post_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT forum_post_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_review
+DROP CONSTRAINT IF EXISTS anime_review_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_review_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_manga
+DROP CONSTRAINT IF EXISTS anime_manga_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_manga_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_character
+DROP CONSTRAINT IF EXISTS anime_character_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_character_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_genre
+DROP CONSTRAINT IF EXISTS anime_genre_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_genre_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_studio
+DROP CONSTRAINT IF EXISTS anime_studio_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_studio_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE purchase
+DROP CONSTRAINT IF EXISTS purchase_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT purchase_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE bookmarks
+DROP CONSTRAINT IF EXISTS bookmarks_anime_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT bookmarks_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE;
+
+ALTER TABLE forum_post
+DROP CONSTRAINT IF EXISTS forum_post_character_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT forum_post_character_id_fkey FOREIGN KEY (character_id) REFERENCES "character"(id) ON DELETE CASCADE;
+
+ALTER TABLE character_review
+DROP CONSTRAINT IF EXISTS character_review_character_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT character_review_character_id_fkey FOREIGN KEY (character_id) REFERENCES "character"(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_character
+DROP CONSTRAINT IF EXISTS anime_character_character_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_character_character_id_fkey FOREIGN KEY (character_id) REFERENCES "character"(id) ON DELETE CASCADE;
+
+ALTER TABLE episode
+DROP CONSTRAINT IF EXISTS episode_season_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT episode_season_id_fkey FOREIGN KEY (season_id) REFERENCES season(id) ON DELETE CASCADE;
+
+ALTER TABLE anime_studio
+DROP CONSTRAINT IF EXISTS anime_studio_season_id_fkey, -- Drop the existing foreign key constraint if it exists
+ADD CONSTRAINT anime_studio_season_id_fkey FOREIGN KEY (season_id) REFERENCES season(id) ON DELETE CASCADE;
 
