@@ -285,7 +285,31 @@ app.get('/user/studio/individual/:id', async(req, res)=>{
             `, [id]
         );
 
-        res.render('studio_animes', {animelist: animelist.rows, username: username});
+        const is_followed = await pool.query(
+            `
+            SELECT is_followed($1, $2)
+            `, [user_id, id]
+        );
+
+        res.render('studio_animes', {animelist: animelist.rows, is_followed: is_followed.rows[0].is_followed, username: username});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Follow a studio
+app.get('/user/studio/follow/:id', async(req, res)=>{
+    try {
+        
+        const id = req.params.id;
+        await pool.query(
+            `
+            INSERT INTO follow (user_id, studio_id) VALUES($1, $2)
+            `, [user_id, id]
+        );
+        res.json({message: "followed"});
 
     } catch (error) {
         console.error('error executing query: ', error);
@@ -360,6 +384,100 @@ app.get('/studio/individual/:id', async (req, res) => {
     }
 })
 
+// Create an anime from studio side
+app.post('/studio/anime/create', async(req, res)=>{
+    try {
+        
+        const {romaji_title, english_title, description, status, season, episodes, duration, start_date, end_date, imagelink, bannerlink, price, season_number} = req.body;
+
+        const q1 = await pool.query(
+            `
+            INSERT INTO anime (romaji_title, english_title, description, status, season, episodes, duration, start_date, end_date, imagelink, bannerlink)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING * ;
+            `, [romaji_title, english_title, description, status, season, episodes, duration, start_date, end_date, imagelink, bannerlink]
+        );
+
+        const q2 = await pool.query(
+            `
+            INSERT INTO season (season_number) VALUES ($1) RETURNING * ;
+            `, [season_number]
+        );
+
+        const q3 = await pool.query(
+            `
+            INSERT INTO anime_studio (anime_id, studio_id, price, season_id) VALUES ($1, $2, $3, $4) ;
+            `, [q1.rows[0].id, studio_id, price, q2.rows[0].id]
+        );
+
+        res.json({message: "Anime created"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Add an episode to a season from studio side
+app.post('/studio/anime/episode', async(req, res)=>{
+    try {
+        
+        const {season_id, episode_number, link} = req.body;
+        const q1 = await pool.query(
+            `
+            INSERT INTO episode (season_id, episode_number, link) VALUES ($1, $2, $3) RETURNING *
+            `, [season_id, episode_number, link]
+        );
+        res.json({message: "episode added"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Add a character to an anime from studio side
+app.post('/studio/anime/character', async(req, res)=>{
+    try {
+        
+        const {name, gender, description, imagelink, anime_id} = req.body;
+
+        const q1 = await pool.query(
+            `
+            INSERT INTO "character" (name, gender, description, imagelink) VALUES ($1, $2, $3, $4) RETURNING *
+            `, [name, gender, description, imagelink]
+        );
+
+        const q2 = await pool.query(
+            `
+            INSERT INTO anime_character (anime_id, character_id) VALUES ($1, $2)
+            ` [anime_id, q1.rows[0].id]
+        );
+        res.json({message: "character added"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Delete an anime from studio side
+app.post('/studio/anime/delete', async(req, res)=>{
+    try {
+        
+        const {studio_id, anime_id} = req.body;
+        await pool.query(
+            `
+            CALL delete_anime($1, $2)
+            `, [anime_id, studio_id]
+        );
+        res.json({message: "Anime deleted"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 //Get an anime name
 app.get('/anime', (req, res) => {
     console.log(user_id);
@@ -399,10 +517,16 @@ app.get('/individual_anime/:id', async (req, res) => {
         SELECT SUM(SA.price)
         FROM anime_studio SA
         WHERE SA.anime_id = A.id
-        ) AS price
+        ) AS price,
+        (
+            SELECT ROUND(CAST(SUM(rating) / COUNT(*) AS NUMERIC), 3) AS rating
+            FROM anime_review
+            WHERE rating IS NOT NULL
+            AND anime_id = $1
+        )
         FROM anime A
-        WHERE id = $1;
-        `, [id]
+        WHERE id = $2;
+        `, [id, id]
     );
 
     const status = await pool.query(
@@ -444,6 +568,7 @@ app.get('/individual_anime/:id', async (req, res) => {
         FROM anime_review AR 
         JOIN "user" U ON U.id = AR.user_id
         WHERE AR.anime_id = $1
+        AND AR.body IS NOT NULL
         `, [id]
     );
 
@@ -564,7 +689,7 @@ app.post('/anime/rate', async(req, res)=>{
         await pool.query(
             `
             CALL handle_anime_rating($1, $2, $3)
-            `, [user_id, anime_id, rating]
+            `, [anime_id, user_id, rating]
         );
         res.json({message: "Rating added"});
 
@@ -582,9 +707,28 @@ app.post('/anime/review', async(req, res)=>{
         await pool.query(
             `
             CALL handle_anime_review($1, $2, $3)
-            `, [user_id, anime_id, body]
+            `, [anime_id, user_id, body]
         );
         res.json({message: "Review added"});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Delete an anime review
+app.post('/anime/review/delete', async(req, res)=>{
+    try {
+        
+        const review_post_id = req.body.id;
+        await pool.query(
+            `
+            DELETE FROM anime_review
+            WHERE id = $1
+            `, [review_post_id]
+        );
+        res.json({message: "Review deleted"});
 
     } catch (error) {
         console.error('error executing query: ', error);
