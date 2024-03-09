@@ -84,19 +84,75 @@
 
     <%- include('./partials/navbar.ejs') %>
 
-    <div class="container-sm">
-        <div class="content">
-            <form action="/anime_info" method="GET">
-                <div class="form-group">
-                    <label for="animeID">Anime name:</label>
-                    <input type="text" id="animeID" name="name" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </form>
+    <div class="container p-3 bg-info bg-opacity-10 border border-info border-start-0 rounded-end">
+        <!-- Search filters -->
+        <div class="card mb-3 shadow-lg bg-light">
+            <div class="card-header">
+                Apply search filters
+            </div>
+            <div class="card-body">
+                <form id="searchForm">
+                    <div class="form-group">
+                        <label for="title">Name:</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre">Genre:</label>
+                        <select class="form-select" aria-label="Default select example" id="genre" name="genre">
+                            <option selected>Select genre</option>
+                            <option value="Psychological">Psychological</option>
+                            <option value="Action">Action</option>
+                            <option value="Supernatural">Supernatural</option>
+                            <option value="Thriller">Thriller</option>
+                            <option value="Mystery">Mystery</option>
+                            <option value="Comedy">Comedy</option>
+                            <option value="Adventure">Adventure</option>
+                            <option value="Sci-Fi">Sci-Fi</option>
+                            <option value="Drama">Drama</option>
+                            <option value="Horror">Horror</option>
+                            <option value="Fantasy">Fantasy</option>
+                            <option value="Slice of Life">Slice of Life</option>
+                            <option value="Mecha">Mecha</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Romance">Romance</option>
+                            <option value="Music">Music</option>
+                            <option value="Ecchi">Ecchi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="season">Season:</label>
+                        <select class="form-select" aria-label="Default select example" id="season" name="season">
+                            <option selected>Select season</option>
+                            <option value="SUMMER">SUMMER</option>
+                            <option value="FALL">FALL</option>
+                            <option value="WINTER">WINTER</option>
+                            <option value="SPRING">SPRING</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="submitForm()" class="btn btn-primary">Search</button>
+                </form>
+            </div>            
         </div>
     </div>
+
+    <script>
+        function submitForm() {
+            let form = document.getElementById('searchForm');
+            let title = form.elements['title'].value;
+            let genre = form.elements['genre'].value;
+            let season = form.elements['season'].value;
+    
+            // Construct the query string
+            let queryString = '?title=' + encodeURIComponent(title) + '&genre=' + encodeURIComponent(genre) + '&season=' + encodeURIComponent(season);
+    
+            // Append the query string to the URL and navigate
+            window.location.href = '/anime/search' + queryString;
+        }
+    </script>
+    
     
     <div class="container">
+        <h1>Most popular:</h1>
         <div class="row">
             <% for(var i = 0; i < animelist.length; i++){ %>
                 <div class="col-md-4 mb-4">

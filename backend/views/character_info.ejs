@@ -36,7 +36,7 @@
 
     <%- include('./partials/navbar.ejs') %>
 
-    <div class="container">
+    <div class="container-fluid text-center">
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="character-card">
@@ -50,6 +50,29 @@
                             <p><strong>Description:</strong> <%= character.description %></p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="content">
+                    <h3>Forum posts:</h3>
+                    <% forum_posts.forEach(post => { %>
+                        <div class="card mb-3 shadow-lg bg-light">
+                            <div class="card-header">
+                                Author: <%= post.user_name %>
+                            </div>
+                            <a href="/forum/<%= post.id %>">
+                            <div class="card-body">
+                                <h2 class="card-title"><%= post.title %></h2>
+                                <p class="card-text">Date Posted: <%= post.date_posted %></p>
+                            </div>
+                            </a>
+                        </div>
+                        <br>
+                    <% }) %>
+                    <form action="/redirect/character/forum_post/<%= character.id %>" method="GET">
+                        <button class="btn-primary">Create post</button>
+                    </form>
                 </div>
             </div>
         </div>

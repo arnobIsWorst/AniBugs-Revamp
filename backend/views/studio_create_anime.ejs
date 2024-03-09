@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Anime</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <%- include('./partials/navbar.ejs') %>
+
+    <div class="container">
+        <h1>Add New Anime</h1>
+        <form action="/studio/anime/create" method="POST">
+            <div class="form-group">
+                <label for="romajiTitle">Romaji Title</label>
+                <input type="text" class="form-control" id="romajiTitle" name="romaji_title" required>
+            </div>
+            <div class="form-group">
+                <label for="englishTitle">English Title</label>
+                <input type="text" class="form-control" id="englishTitle" name="english_title" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="status">Status</label>
+                <input type="text" class="form-control" id="status" name="status" required>
+            </div>
+            <div class="form-group">
+                <label for="season">Season</label>
+                <input type="text" class="form-control" id="season" name="season" required>
+            </div>
+            <div class="form-group">
+                <label for="episodes">Episodes</label>
+                <input type="number" class="form-control" id="episodes" name="episodes" required>
+            </div>
+            <div class="form-group">
+                <label for="duration">Duration (minutes)</label>
+                <input type="number" class="form-control" id="duration" name="duration" required>
+            </div>
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="date" class="form-control" id="startDate" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="date" class="form-control" id="endDate" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <label for="imageLink">Image Link</label>
+                <input type="url" class="form-control" id="imageLink" name="imagelink" required>
+            </div>
+            <div class="form-group">
+                <label for="bannerLink">Banner Link</label>
+                <input type="url" class="form-control" id="bannerLink" name="bannerlink" required>
+            </div>
+            <div class="form-group">
+                <label for="price">Price</label>
+                <input type="number" class="form-control" id="price" name="price" required>
+            </div>
+            <div class="form-group">
+                <label for="seasonNumber">Number of seasons</label>
+                <input type="number" class="form-control" id="seasonNumber" name="season_number" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+</body>
+
+</html>

@@ -35,29 +35,32 @@
 
 <body>
 
-    <%- include('./partials/navbar.ejs') %>
-
-    <div class="container p-3 bg-info bg-opacity-10 border border-info border-start-0 rounded-end">
-        <!-- New Post Form -->
-        <div class="card mb-3 shadow-lg bg-light">
-            <div class="card-header">
-                Create New Forum Post
-            </div>
-            <div class="card-body">
-                <form action="/forum/create" method="post">
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="body">Body:</label>
-                        <textarea class="form-control" id="body" name="body" rows="5" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                </form>
-            </div>
+    <div>
+        <hr class="border border-danger border-7 opacity-50">
+        <div class="text-success text-center">
+            <h1><strong>Anibugs</strong></h1>
         </div>
+        <hr class="border border-primary border-7 opacity-75">
     </div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/all_anime">Anime</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/studio">Studio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/render/forum/create">Create Forum Post</a>
+                </li>
+            </ul>
+        </div>
+        <a class="navbar-brand ml-auto" href="/user_info"><%= username %></a>
+        <form class="form-inline" action="/logout" method="get">
+            <button class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
+        </form>
+    </nav>
 
     <div class="container">
         <% for(let i = 0; i < posts.length; i++){ %>

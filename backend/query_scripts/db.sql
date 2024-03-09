@@ -44,7 +44,10 @@ CREATE TABLE "character"(
 CREATE SEQUENCE studio_id_seq START 7500;
 CREATE TABLE studio(
     id INTEGER DEFAULT nextval('studio_id_seq') PRIMARY KEY,
-    name VARCHAR(50)
+    name VARCHAR(50),
+    email VARCHAR(100),
+    "password" VARCHAR(100),
+    refunded_amount NUMERIC DEFAULT 0
 );
 
 CREATE SEQUENCE user_id_seq START 1001;
@@ -57,7 +60,7 @@ CREATE TABLE "user"(
     joined DATE DEFAULT CURRENT_DATE,
     avatarlink VARCHAR(500),
     password VARCHAR(100),
-    balance DOUBLE PRECISION DEFAULT 0
+    balance NUMERIC DEFAULT 0
 );
 
 CREATE TABLE forum_post(
@@ -170,6 +173,7 @@ CREATE TABLE bookmarks(
     PRIMARY KEY (user_id, anime_id)
 );
 
+
 DROP TABLE anime_genre;
 DROP TABLE anime_manga;
 DROP TABLE anime_studio;
@@ -230,9 +234,11 @@ ALTER TABLE anime_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
 ALTER TABLE character_review ALTER COLUMN date_purchased SET DEFAULT CURRENT_DATE;
 
 ALTER TABLE studio ADD refund_time_limit INTERVAL DEFAULT '3 day';
-ALTER TABLE studio ADD refund_rate DOUBLE PRECISION DEFAULT 0.5;
+ALTER TABLE studio ADD refund_rate NUMERIC DEFAULT 0.5;
+ALTER TABLE studio ADD refunded_amount NUMERIC DEFAULT 0;
 
-ALTER TABLE "user" ADD balance DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE "user" DROP COLUMN balance;
+ALTER TABLE "user" ADD balance NUMERIC DEFAULT 0;
 
 
 ALTER TABLE forum_post_vote
@@ -295,3 +301,11 @@ ALTER TABLE anime_studio
 DROP CONSTRAINT IF EXISTS anime_studio_season_id_fkey, -- Drop the existing foreign key constraint if it exists
 ADD CONSTRAINT anime_studio_season_id_fkey FOREIGN KEY (season_id) REFERENCES season(id) ON DELETE CASCADE;
 
+
+
+
+ALTER TABLE studio ADD email VARCHAR(100) UNIQUE;
+ALTER TABLE studio ADD "password" VARCHAR(100);
+UPDATE studio SET "password" = '1234'; 
+
+UPDATE studio SET email = LOWER(REPLACE(name, ' ', '')) || '@gmail.com';

@@ -46,7 +46,19 @@
 </head>
 <body>
 
-<%- include('./partials/navbar.ejs') %>
+    <div>
+        <hr class="border border-danger border-7 opacity-50">
+        <div class="text-success text-center">
+            <h1><strong>Anibugs</strong></h1>
+        </div>
+        <hr class="border border-primary border-7 opacity-75">
+    </div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand ml-auto" href="/user_info"><%= username %></a>
+        <form class="form-inline" action="/logout" method="get">
+            <button class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
+        </form>
+    </nav>
 
 <!-- Studio profile info section -->
 <div class="container mt-5">
@@ -63,10 +75,11 @@
         <thead>
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">Studio</th>
                 <th scope="col">Romaji Title</th>
                 <th scope="col">English Title</th>
                 <th scope="col">Price ($)</th>
+                <th scope="col">Details</th>
+                <th scope="col">Delete</th>
                 <!-- Add more columns as needed -->
             </tr>
         </thead>
@@ -74,15 +87,32 @@
             <% for(let i = 1; i <= list.length; i++) { %>
                 <tr>
                     <th scope="row"><%= i %></th>
-                    <td><%= list[i-1].name %></td>
                     <td><%= list[i-1].romaji_title %></td>
                     <td><%= list[i-1].english_title %></td>
                     <td><%= list[i-1].price %></td>
+                    <td>
+                        <form action="/studio/anime/details/<%= list[i-1].id %>" method="GET">
+                            <button class="btn-primary">Details</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/studio/anime/delete/<%= list[i-1].id %>" method="GET">
+                            <button class="btn-danger">Delete</button>
+                        </form>
+                    </td>
                     <!-- Add more cells with dynamic data as needed -->
                 </tr>
             <% } %>
         </tbody>
     </table>
+    <!-- Create anime -->
+    <div class="container-sm">
+        <div class="content">
+            <form action="/studio/render/anime" method="GET">
+                <button class="btn-primary">Create anime</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <div class="container mt-5">
@@ -114,6 +144,8 @@
         </tbody>
     </table>
 </div>
+
+
 
 <div class="container mt-5">
     <h2>Follower List</h2>

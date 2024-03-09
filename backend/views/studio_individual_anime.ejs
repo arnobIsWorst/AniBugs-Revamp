@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        .content {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        li {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        li::before {
+            content: "\2022"; /* Add a bullet point before each list item */
+            color: #333;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+            margin-right: 8px;
+        }
+
+        img {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <%- include('./partials/navbar.ejs') %>
+
+    <img src="<%= anime.bannerlink %>">
+    <div class="container-fluid text-center">
+        <div class="row">
+            <div class="col-3">
+                <div class="content">
+                    <ul class="list-unstyled">
+                        <li><strong>Status:</strong> <%= anime.status %></li>
+                        <li><strong>Season:</strong> <%= anime.season %></li>
+                        <li><strong>Total episodes:</strong> <%= anime.episodes %></li>
+                        <li><strong>Duration per episode:</strong> <%= anime.duration %></li>
+                        <li><strong>Start date:</strong> <%= anime.start_date %></li>
+                        <li><strong>End date:</strong> <%= anime.end_date %></li>
+                        <li><strong>Price: </strong> <%= anime.price %></li>
+                        <li><strong>Rating: </strong><%= anime.rating %></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-9">
+                <div class="content">
+                    <img src="<%= anime.imagelink %>" class="img-fluid" alt="Anime Image">
+                    <h1>Name: <%= anime.romaji_title %> / <%= anime.english_title %></h1>
+                    <p><%= anime.description %></p>
+                </div>
+            </div>
+            
+        
+        </div>
+    </div>
+
+    <!-- Seasons -->
+    <div class="container mt-5">
+        <h2>Season: <%= season.season_number %></h2>
+        <p><strong>Price: <%= season.price %></strong></p>
+        <h4>Episode List</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">Episode number</th>
+                    <th scope="col">Episode link</th>
+                    <!-- Add more columns as needed -->
+                </tr>
+            </thead>
+            <tbody>
+                <% episodes.forEach(episode => {%>
+                    <tr>
+                        <td><%= episode.episode_number %></td>
+                        <td><a href="<%= episode.link %>">Watch</a></td>
+                        <!-- Add more cells with dynamic data as needed -->
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+            Add episode
+        </button>
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Add episode to season <%= season.season_number %></h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="numberInput">Episode number:</label>
+                            <input type="number" class="form-control" id="numberInput"></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="linkInput">Episode link:</label>
+                            <textarea class="form-control" id="linkInput" rows="1"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="submitBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            // Get the value from the text area
+            let episode_number = document.getElementById('numberInput').value;
+            let link = document.getElementById('linkInput').value;
+
+            // Send a POST request to the backend route
+            fetch('/studio/anime/episode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ episode_number: episode_number, link: link, season_id: parseInt("<%= season.season_id %>") })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add episode');
+                }
+                console.log('Episode added successfully');
+                // Optionally, you can close the modal here
+                $('#exampleModal').modal('hide');
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error adding episode:', error);
+            });
+        });
+    </script>
+
+
+    <div class="container text-center">
+        <h3><strong>Characters</strong></h3>
+        <div class="row">
+            <% characters.forEach(character => { %>
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <img src="<%= character.imagelink %>" alt="Anime Image" class="card-img-top">
+                        <div class="card-body">
+                            <h3><%= character.name %></h3>
+                            <p><%= character.gender %></p>
+                            <p><%= character.description %></p>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal2">
+            Add character
+        </button>
+        <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Add character to anime</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="nameInput">Name</label>
+                            <input type="text" class="form-control" id="nameInput"></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="genderInput">Gender</label>
+                            <input type="text" class="form-control" id="genderInput"></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="descriptionInput">Description</label>
+                            <input type="text" class="form-control" id="descriptionInput"></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="imagelinkInput">Image link:</label>
+                            <textarea class="form-control" id="imagelinkInput" rows="1"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="submitBtn2">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('submitBtn2').addEventListener('click', function() {
+            // Get the value from the text area
+            let name = document.getElementById('nameInput').value;
+            let gender = document.getElementById('genderInput').value;
+            let description = document.getElementById('descriptionInput').value;
+            let imagelink = document.getElementById('imagelinkInput').value;
+
+            // Send a POST request to the backend route
+            fetch('/studio/anime/character', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    name: name,
+                    gender: gender,
+                    description: description,
+                    imagelink: imagelink,
+                    anime_id: parseInt("<%= anime.id %>")
+                 })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add character');
+                }
+                console.log('Character added successfully');
+                // Optionally, you can close the modal here
+                $('#exampleModal').modal('hide');
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error adding character:', error);
+            });
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>

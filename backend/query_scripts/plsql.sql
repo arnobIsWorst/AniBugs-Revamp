@@ -492,6 +492,7 @@ RETURNS NUMERIC AS $$
 DECLARE
     u_count INTEGER;
     total_revenue NUMERIC := 0;
+    refund_amount NUMERIC := 0;
     r RECORD;
 BEGIN
     FOR r IN SELECT anime_id, price FROM anime_studio WHERE studio_id = p_studio_id_param LOOP
@@ -503,6 +504,11 @@ BEGIN
             total_revenue := total_revenue + u_count * r.price;
         END IF;
     END LOOP;
+
+    SELECT refunded_amount INTO refund_amount
+    FROM studio WHERE id = p_studio_id_param;
+
+    total_revenue := total_revenue + refund_amount;
 
     RETURN total_revenue;
 END;
@@ -564,7 +570,7 @@ DECLARE
     anime_price NUMERIC;
     v_purchase_time TIMESTAMP;
     v_refund_time_limit INTERVAL;
-    v_refund_rate DOUBLE PRECISION;
+    v_refund_rate NUMERIC;
     r RECORD;
     balance_count NUMERIC;
 BEGIN
@@ -583,18 +589,66 @@ BEGIN
     WHERE user_id = OLD.user_id AND anime_id = OLD.anime_id;
 
     FOR r IN SELECT studio_id, price FROM anime_studio WHERE anime_id = OLD.anime_id LOOP
-        SELECT refund_time_limit, refund_rate INTO v_refund_time_limit, refund_rate
+        SELECT refund_time_limit, refund_rate INTO v_refund_time_limit, v_refund_rate
         FROM studio
         WHERE id = r.studio_id;
         
         IF CURRENT_TIMESTAMP - v_purchase_time <= v_refund_time_limit THEN
-            balance_count = balance_count + v_refund_rate * r.price;
+            balance_count := balance_count + v_refund_rate * r.price;
+
+            UPDATE studio SET refunded_amount := refunded_amount + (1 - v_refund_rate) * r.price
+            WHERE id = r.studio_id;
+        ELSE
+            UPDATE studio SET refunded_amount := refunded_amount + r.price
+            WHERE id = r.studio_id;
         END IF;
     END LOOP;
+
+    UPDATE "user" SET balance = balance_count WHERE id = OLD.user_id;
 
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+CREATE OR REPLACE FUNCTION refund_anime_trigger() RETURNS TRIGGER AS $$
+DECLARE
+    u_balance NUMERIC;
+    anime_price NUMERIC;
+    v_purchase_time TIMESTAMP;
+    r RECORD;
+BEGIN
+    SELECT balance INTO u_balance
+    FROM "user"
+    WHERE id = OLD.user_id;
+
+    SELECT SUM(price) INTO anime_price
+    FROM anime_studio 
+    WHERE anime_id = OLD.anime_id;
+
+    SELECT timestamp_purchased INTO v_purchase_time
+    FROM purchase
+    WHERE user_id = OLD.user_id AND anime_id = OLD.anime_id;
+
+    IF CURRENT_TIMESTAMP - v_purchase_time <= interval '3 day' THEN
+        UPDATE "user" SET balance = u_balance + 0.5 * anime_price
+        WHERE id = OLD.user_id;
+
+        FOR r IN (SELECT * FROM anime_studio WHERE anime_id = OLD.anime_id) LOOP;
+            UPDATE studio SET refunded_amount = refunded_amount + 0.5 * r.price 
+            WHERE id = r.studio_id;
+        END LOOP;
+    ELSE
+        RETURN NULL;
+    END IF;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 CREATE OR REPLACE TRIGGER refund_anime_trigger
 BEFORE DELETE ON purchase
@@ -899,6 +953,91 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
+-- Function to validate studio login
+CREATE OR REPLACE FUNCTION IS_VALID_STUDIO(EMAIL IN VARCHAR(100), U_PASSWORD IN VARCHAR(100))
+RETURN BOOLEAN IS
+    V_PASS VARCHAR(100);
+BEGIN
+    SELECT "password" INTO V_PASS 
+    FROM studio WHERE email = EMAIL;
+    
+    IF V_PASS = U_PASSWORD THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
+END;
+
+
+
+CREATE OR REPLACE FUNCTION is_valid_studio(email_param VARCHAR(100), u_password_param VARCHAR(100))
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_pass VARCHAR(100);
+BEGIN
+    SELECT "password" INTO v_pass 
+    FROM studio WHERE LOWER(email) = LOWER(email_param);
+    
+    IF v_pass = u_password_param THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Trigger to validate studio signup
+CREATE OR REPLACE TRIGGER VALIDATE_STUDIO_SIGNUP
+BEFORE INSERT
+ON studio
+FOR EACH ROW
+DECLARE
+V_EMAIL_COUNT NUMBER;
+BEGIN
+
+SELECT COUNT(*) INTO V_EMAIL_COUNT
+FROM studio
+WHERE email = :NEW.email;
+
+IF V_EMAIL_COUNT > 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Duplicate email.');
+END IF;
+
+END;
+
+
+
+CREATE OR REPLACE FUNCTION validate_studio_signup_trigger() RETURNS TRIGGER AS $$
+DECLARE
+    v_email_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_email_count
+    FROM studio
+    WHERE email = NEW.email;
+
+    IF v_email_count > 0 THEN
+        RAISE EXCEPTION 'Duplicate email';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER validate_studio_signup_trigger
+BEFORE INSERT ON studio
+FOR EACH ROW
+EXECUTE FUNCTION validate_studio_signup_trigger();
 
 
 

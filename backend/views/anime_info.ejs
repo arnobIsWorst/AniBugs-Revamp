@@ -85,7 +85,15 @@
                         <li><strong>Duration per episode:</strong> <%= anime.duration %></li>
                         <li><strong>Start date:</strong> <%= anime.start_date %></li>
                         <li><strong>End date:</strong> <%= anime.end_date %></li>
+                        <li><h4>Genres:</h4>
+                            <ul>
+                                <% genres.forEach(genre => { %>
+                                    <li><%= genre.genre %></li>
+                                <% }) %>
+                            </ul>
+                        </li>
                         <li><strong>Price: </strong> <%= anime.price %></li>
+                        <li><strong>Rating: </strong><%= anime.rating %></li>
                         <li><strong>Studios:</strong></li>
 
                         <% for(var i = 0; i < studiolist.length; i++){ %>
@@ -124,14 +132,14 @@
                             <div class="card-body">
                                 <h2 class="card-title"><%= post.title %></h2>
                                 <p class="card-text">Date Posted: <%= post.date_posted %></p>
-                                <!--<form action="/forum/<%= post.id %>" method="get">
-                                    <button type="submit" class="btn btn-primary btn-details">View post</button>
-                                </form>-->
                             </div>
                             </a>
                         </div>
                         <br>
                     <% }) %>
+                    <form action="/redirect/anime/forum_post/<%= anime.id %>" method="GET">
+                        <button class="btn-primary">Create post</button>
+                    </form>
                 </div>
             </div>
         
@@ -148,7 +156,13 @@
                         <h2 class="card-title">Season <%= season.season_number %></h2>
                         <p class="card-text"><strong>Studio:</strong> <%= season.name %></p>
                         <p class="card-text"><strong>Price:</strong> <%= season.price %></p>
-                        <button class="btn btn-primary btn-details">Watch</button>
+                        <% if (isPurchased) { %>
+                            <a href="/anime/episodes/<%= season.id %>" class="btn btn-primary btn-details">Watch</a>
+                        <% } else { %>
+                            <div class="alert alert-warning" role="alert">
+                                You need to purchase this anime to watch it.
+                            </div>
+                        <% } %>
                     </div>
                 </div>
             </div>
@@ -177,6 +191,30 @@
     </div>
 
     <div class="container">
+        <br>
+        <h3>Rate Anime:</h3>
+        <form action="/anime/rate/<%= anime.id %>" method="post">
+            <div class="form-group">
+                <label for="rating">Rating:</label>
+                <select class="form-control" id="rating" name="rating">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Rating</button>
+        </form>
+        <br>
+        <h3>Add Review:</h3>
+        <form action="/anime/review/<%= anime.id %>" method="post">
+            <div class="form-group">
+                <label for="review">Review:</label>
+                <textarea class="form-control" id="review" name="review" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+        </form>
         <br>
         <br>
         <h3>Reviews:</h3>

@@ -60,16 +60,21 @@ app.get('/auth/user', async(req, res)=>{
 app.get('/auth/studio', async(req, res)=>{
     try {
 
-        studio_id = req.query.studio_id;
-        console.log(studio_id);
-        const q = await pool.query(
+        const {email, password} = req.query;
+        console.log(email, password);
+        const is_valid = await pool.query(
             `
-            SELECT * FROM studio WHERE id = $1;
-            `, [studio_id]
+            SELECT is_valid_studio($1, $2);
+            `, [email, password]
         );
-        console.log(q.rows);
-
-        if(q.rows[0]){
+        console.log(is_valid.rows[0].is_valid_studio);
+        if(is_valid.rows[0].is_valid_studio){
+            const q = await pool.query(
+                `
+                SELECT id FROM studio WHERE email = $1 AND password = $2
+                `, [email, password]
+            );
+            studio_id = q.rows[0].id;
             res.redirect('/studio/individual/' + studio_id);
         } else{
             res.redirect('/');
@@ -274,7 +279,7 @@ app.get('/user/studio/individual/:id', async(req, res)=>{
         
         const animelist = await pool.query(
             `
-            SELECT A.id, A.romaji_title, A.english_title, A.imagelink, COALESCE(T.count, 0) AS user_count
+            SELECT SA.studio_id, A.id, A.romaji_title, A.english_title, A.imagelink, COALESCE(T.count, 0) AS user_count
             FROM anime_studio SA JOIN anime A ON A.id = SA.anime_id
             LEFT JOIN 
             (
@@ -311,7 +316,7 @@ app.get('/user/studio/follow/:id', async(req, res)=>{
             INSERT INTO follow (user_id, studio_id) VALUES($1, $2)
             `, [user_id, id]
         );
-        res.json({message: "followed"});
+        res.redirect('/user/studio/individual/' + id);
 
     } catch (error) {
         console.error('error executing query: ', error);
@@ -565,7 +570,69 @@ app.get('/anime_info', (req, res) => {
     })
 })
 
+// Anime search filters
+app.get('/anime/search', async(req, res)=>{
+    try {
+        
+        const {title, genre, season} = req.query;
+        console.log(title, genre, season);
 
+        let search_count = 1;
+        let search_name = '';
+        let search_variables = [];
+        //if(title.length != 0){
+            search_name = `SELECT A.*
+                            FROM anime A
+                            WHERE UPPER(A.romaji_title) LIKE $1 OR UPPER(A.english_title) LIKE $2 `;
+            search_variables.push(`%${title.toUpperCase()}%`);
+            search_variables.push(`%${title.toUpperCase()}%`);
+            search_count = 2;
+        //}
+        let search_genre = '';
+        if(genre != 'Select genre' && genre.length > 0){
+            search_count += 1;
+            search_genre = ` SELECT A.*
+                            FROM anime A JOIN anime_genre AG
+                            ON A.id = AG.anime_id
+                            AND AG.genre = $${search_count} `;
+            search_variables.push(`${genre}`);
+            
+        }
+        let search_season = '';
+        if(season != 'Select season' && season.length > 0){
+            search_count += 1;
+            search_season = ` SELECT A.*
+                            FROM anime A
+                            WHERE A.season = $${search_count}
+                            `;
+            search_variables.push(`${season}`);
+        }
+
+        let sql = search_name;
+        if(search_genre.length > 0){
+            sql += ' Intersect\n' + search_genre;
+        }
+        if(search_season.length > 0){
+            sql += ' INTERSECT\n' + search_season;
+        }
+        sql = `SELECT M.*
+                FROM ( ` + sql + 
+                ` ) M 
+                LEFT JOIN (
+                SELECT anime_id, COUNT(user_id)
+                FROM purchase P
+                GROUP BY P.anime_id
+                ) T ON T.anime_id = M.id
+                ORDER BY COALESCE(T.COUNT, 0) DESC`
+        const animelist = await pool.query(sql, search_variables);
+        //console.log(animelist.rows);
+        res.render('all_anime', {animelist: animelist.rows, username: username});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
 
 // View details for a particular anime
 app.get('/individual_anime/:id', async (req, res) => {
@@ -651,6 +718,14 @@ app.get('/individual_anime/:id', async (req, res) => {
         `, [id]
     );
 
+    const genres = await pool.query(
+        `
+        SELECT genre
+        FROM anime_genre
+        WHERE anime_id = $1
+        `, [id]
+    );
+
     res.render('anime_info', {
         anime: anime.rows[0],
         studiolist: studios.rows,
@@ -660,7 +735,8 @@ app.get('/individual_anime/:id', async (req, res) => {
         characterlist: characters.rows,
         reviewlist: reviews.rows,
         forum_posts: forum_posts.rows,
-        seasons: seasons.rows
+        seasons: seasons.rows,
+        genres: genres.rows
     });
 })
 
@@ -835,7 +911,44 @@ app.get('/character/:id', async(req, res)=>{
             `, [id]
         );
         console.log(character, username);
-        res.render('character_info', {character: character.rows[0], username: username});
+
+        const forum_posts = await pool.query(
+            `
+            SELECT U.first_name || ' ' || U.last_name AS user_name, FP.id, FP.title, FP.date_posted
+            FROM forum_post FP 
+            JOIN "user" U ON U.id = FP.user_id
+            WHERE FP.character_id = $1;
+            `, [id]
+        );
+
+        res.render('character_info', {
+            character: character.rows[0], 
+            forum_posts: forum_posts.rows, 
+            username: username});
+
+    } catch (error) {
+        console.error('error executing query: ', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// Render create forum post page for a character
+app.get('/redirect/character/forum_post/:id', async(req, res)=>{
+    res.render('create_forum_character', {character_id: req.params.id, username: username});
+})
+
+// Create forum post for character
+app.post('/character/forum/create/:id', async(req, res)=>{
+    try {
+        
+        const {title, body} = req.body;
+        const character_id = req.params.id;
+        await pool.query(
+            `
+            INSERT INTO forum_post (character_id, user_id, title, body, topic) VALUES ($1, $2, $3, $4, $5)
+            `, [character_id, user_id, title, body, "character"]
+        );
+        res.redirect('/character/' + character_id);
 
     } catch (error) {
         console.error('error executing query: ', error);
@@ -1003,6 +1116,11 @@ app.post('/forum/comment', async(req, res)=>{
     }
 });
 
+// Render create forum page
+app.get('/render/forum/create', async(req, res)=>{
+    res.render('create_forum', {username: username});
+})
+
 // Create new forum post
 app.post('/forum/create', async(req, res)=>{
     try {
@@ -1060,11 +1178,11 @@ app.get('/add_studio', async(req, res)=>{
 app.post('/add_studio/db', async(req, res)=>{
     try {
         
-        const name = req.body.name;
+        const {name, email, password} = req.body;
         await pool.query(
             `
-            INSERT INTO studio (name) VALUES ($1)
-            `, [name]
+            INSERT INTO studio (name, email, password) VALUES ($1, $2, $3)
+            `, [name, email, password]
         );
         res.redirect('/');
 

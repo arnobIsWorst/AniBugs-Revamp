@@ -84,6 +84,18 @@
 
     <%- include('./partials/navbar.ejs') %>
     
+    <div class="container mt-5">
+        <div class="content">
+            <% if(is_followed){ %>
+                <label class="text-success">Followed</label>
+            <% } else{ %>
+                <form action="/user/studio/follow/<%= animelist[0].studio_id %>">
+                    <button class="btn-primary">Follow</button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+    
     <div class="container">
         <h1>Created animes:</h1>
         <div class="row">

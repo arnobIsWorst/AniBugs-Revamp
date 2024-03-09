@@ -394,6 +394,7 @@ RETURNS NUMERIC AS $$
 DECLARE
     u_count INTEGER;
     total_revenue NUMERIC := 0;
+    refund_amount NUMERIC := 0;
     r RECORD;
 BEGIN
     FOR r IN SELECT anime_id, price FROM anime_studio WHERE studio_id = p_studio_id_param LOOP
@@ -405,6 +406,11 @@ BEGIN
             total_revenue := total_revenue + u_count * r.price;
         END IF;
     END LOOP;
+
+    SELECT refunded_amount INTO refund_amount
+    FROM studio WHERE id = p_studio_id_param;
+
+    total_revenue := total_revenue + refund_amount;
 
     RETURN total_revenue;
 END;
@@ -456,6 +462,7 @@ DECLARE
     u_balance NUMERIC;
     anime_price NUMERIC;
     v_purchase_time TIMESTAMP;
+    r RECORD;
 BEGIN
     SELECT balance INTO u_balance
     FROM "user"
@@ -472,6 +479,11 @@ BEGIN
     IF CURRENT_TIMESTAMP - v_purchase_time <= interval '3 day' THEN
         UPDATE "user" SET balance = u_balance + 0.5 * anime_price
         WHERE id = OLD.user_id;
+
+        FOR r IN (SELECT * FROM anime_studio WHERE anime_id = OLD.anime_id) LOOP;
+            UPDATE studio SET refunded_amount = refunded_amount + 0.5 * r.price 
+            WHERE id = r.studio_id;
+        END LOOP;
     ELSE
         RETURN NULL;
     END IF;
@@ -670,5 +682,47 @@ BEGIN
         END LOOP;
     END IF;
 
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Function to validate studio login
+CREATE OR REPLACE FUNCTION IS_VALID_STUDIO(EMAIL IN VARCHAR(100), U_PASSWORD IN VARCHAR(100))
+RETURN BOOLEAN IS
+    V_PASS VARCHAR(100);
+BEGIN
+    SELECT "password" INTO V_PASS 
+    FROM studio WHERE email = EMAIL;
+    
+    IF V_PASS = U_PASSWORD THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
+END;
+
+
+
+CREATE OR REPLACE FUNCTION is_valid_studio(email_param VARCHAR(100), u_password_param VARCHAR(100))
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_pass VARCHAR(100);
+BEGIN
+    SELECT "password" INTO v_pass 
+    FROM studio WHERE LOWER(email) = LOWER(email_param);
+    
+    IF v_pass = u_password_param THEN
+        RETURN TRUE;
+    ELSE 
+        RETURN FALSE;
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN FALSE;  -- Handle case where email is not found in the database
 END;
 $$ LANGUAGE plpgsql;
